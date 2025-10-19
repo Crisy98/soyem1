@@ -37,6 +37,8 @@ export async function DELETE(
     );
   }
 }
+// En tu archivo route.ts - Corrección para el GET individual
+
 export async function GET(
   req: Request,
   { params }: { params: { id: string } }
@@ -44,7 +46,7 @@ export async function GET(
   try {
     const { id } = params;
 
-    // Traer afiliado + persona
+    // Traer afiliado + persona - AGREGAR activo al SELECT
     const afiliadoRes = await pool.query(
       `SELECT a.*, 
               p.dni, p.nombre, p.apellido, p.fechanacimiento, p.telefono, p.email, p.sexo
@@ -76,6 +78,7 @@ export async function GET(
       [id]
     );
 
+    // Estructura consistente con la lista
     return NextResponse.json({
       persona: {
         dni: afiliado.dni,
@@ -96,10 +99,11 @@ export async function GET(
         fechaafiliacion: afiliado.fechaafiliacion,
         fechamunicipio: afiliado.fechamunicipio,
         lugartrabajo: afiliado.lugartrabajo,
-        activo: afiliado.activo,
+        activo: afiliado.activo ?? true, // Asegurar que siempre tenga un valor
       },
       hijos: hijosRes.rows,
       usuario: userRes.rows[0] ?? null,
+      activo: afiliado.activo ?? true, // También a nivel raíz para compatibilidad
     });
   } catch (err) {
     console.error("Error obteniendo detalle de afiliado:", err);

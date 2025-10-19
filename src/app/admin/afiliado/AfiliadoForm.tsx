@@ -14,16 +14,24 @@ interface Hijo {
   fechanacimiento: string;
 }
 
+interface ResultState {
+  error?: string;
+  message?: string;
+  username?: string;
+  password?: string;
+  type?: 'success' | 'validation' | 'server' | 'network';
+}
+
 export default function AfiliadoForm({
   onClose,
   onSaved,
   initialData,
-  isFullPage = false, // Valor por defecto false
+  isFullPage = false,
 }: {
   onClose: () => void;
   onSaved: () => void;
   initialData?: any;
-  isFullPage?: boolean; // Agregar la nueva prop como opcional
+  isFullPage?: boolean;
 }) {
   const [form, setForm] = useState({
     persona: {
@@ -49,107 +57,219 @@ export default function AfiliadoForm({
     hijos: [] as Hijo[],
   });
 
-  const [errors, setErrors] = useState<any>({});
-  const [result, setResult] = useState<any>(null);
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [result, setResult] = useState<ResultState | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showValidationErrors, setShowValidationErrors] = useState(false);
 
   // Cargar datos iniciales si es edición
   useEffect(() => {
     if (initialData) {
+      console.log('InitialData recibido en AfiliadoForm:', initialData);
+
       const formatDate = (dateString: string) => {
         if (!dateString) return "";
         const date = new Date(dateString);
         return date.toISOString().split('T')[0];
       };
 
-      setForm({
+      // Extraer datos de persona - puede venir anidado o directo
+      const personaData = initialData.persona || {
+        dni: initialData.dni,
+        nombre: initialData.nombre,
+        apellido: initialData.apellido,
+        fechanacimiento: initialData.fechanacimiento,
+        telefono: initialData.telefono,
+        email: initialData.email,
+        sexo: initialData.sexo
+      };
+
+      // Extraer datos de afiliado - puede venir anidado o directo
+      const afiliadoData = initialData.afiliado || {
+        idafiliado: initialData.idafiliado,
+        area: initialData.area,
+        cargo: initialData.cargo,
+        tipocontratacion: initialData.tipocontratacion,
+        legajo: initialData.legajo,
+        categoria: initialData.categoria,
+        fechaafiliacion: initialData.fechaafiliacion,
+        fechamunicipio: initialData.fechamunicipio,
+        lugartrabajo: initialData.lugartrabajo
+      };
+
+      const formData = {
         persona: {
-          dni: initialData.persona?.dni?.toString() || "",
-          nombre: initialData.persona?.nombre || "",
-          apellido: initialData.persona?.apellido || "",
-          fechanacimiento: formatDate(initialData.persona?.fechanacimiento) || "",
-          telefono: initialData.persona?.telefono?.toString() || "",
-          email: initialData.persona?.email || "",
-          sexo: initialData.persona?.sexo || "",
+          dni: personaData.dni?.toString() || "",
+          nombre: personaData.nombre || "",
+          apellido: personaData.apellido || "",
+          fechanacimiento: formatDate(personaData.fechanacimiento) || "",
+          telefono: personaData.telefono?.toString() || "",
+          email: personaData.email || "",
+          sexo: personaData.sexo || "",
         },
         afiliado: {
-          idafiliado: initialData.afiliado?.idafiliado?.toString() || "",
-          area: initialData.afiliado?.area || "",
-          cargo: initialData.afiliado?.cargo || "",
-          tipocontratacion: initialData.afiliado?.tipocontratacion || "",
-          legajo: initialData.afiliado?.legajo?.toString() || "",
-          categoria: initialData.afiliado?.categoria?.toString() || "",
-          fechaafiliacion: formatDate(initialData.afiliado?.fechaafiliacion) || "",
-          fechamunicipio: formatDate(initialData.afiliado?.fechamunicipio) || "",
-          lugartrabajo: initialData.afiliado?.lugartrabajo || "",
+          idafiliado: afiliadoData.idafiliado?.toString() || "",
+          area: afiliadoData.area || "",
+          cargo: afiliadoData.cargo || "",
+          tipocontratacion: afiliadoData.tipocontratacion || "",
+          legajo: afiliadoData.legajo?.toString() || "",
+          categoria: afiliadoData.categoria?.toString() || "",
+          fechaafiliacion: formatDate(afiliadoData.fechaafiliacion) || "",
+          fechamunicipio: formatDate(afiliadoData.fechamunicipio) || "",
+          lugartrabajo: afiliadoData.lugartrabajo || "",
         },
         hijos: (initialData.hijos || []).map((hijo: any) => ({
           nombre: hijo.nombre || "",
           sexo: hijo.sexo || "",
           fechanacimiento: formatDate(hijo.fechanacimiento) || "",
         })),
-      });
+      };
+
+      console.log('Datos del formulario después de procesar:', formData);
+      setForm(formData);
     }
   }, [initialData]);
 
-  useEffect(() => {
-    validate();
-  }, [form]);
-
-  // Validación de campos
-  const validate = () => {
-    const newErrors: any = {};
+  // Validación mejorada
+  const validate = (): boolean => {
+    const newErrors: Record<string, string> = {};
 
     // Persona
-    if (!form.persona.dni) newErrors.dni = "El DNI es obligatorio.";
-    else if (!validateNumber(form.persona.dni))
-      newErrors.dni = "Solo números permitidos.";
-    if (!form.persona.nombre) newErrors.nombre = "El nombre es obligatorio.";
-    if (!form.persona.apellido) newErrors.apellido = "El apellido es obligatorio.";
-    if (!form.persona.fechanacimiento)
-      newErrors.fechanacimiento = "La fecha de nacimiento es obligatoria.";
-    if (!form.persona.telefono) newErrors.telefono = "El teléfono es obligatorio.";
-    else if (!validateNumber(form.persona.telefono))
-      newErrors.telefono = "Solo números permitidos.";
-    if (!form.persona.email) newErrors.email = "El email es obligatorio.";
-    else if (!validateEmail(form.persona.email))
-      newErrors.email = "Formato de email inválido.";
-    if (!form.persona.sexo) newErrors.sexo = "El sexo es obligatorio.";
+    if (!form.persona.dni.trim()) {
+      newErrors.dni = "El DNI es obligatorio";
+    } else if (!validateNumber(form.persona.dni)) {
+      newErrors.dni = "El DNI solo debe contener números";
+    }
+
+    if (!form.persona.nombre.trim()) {
+      newErrors.nombre = "El nombre es obligatorio";
+    }
+
+    if (!form.persona.apellido.trim()) {
+      newErrors.apellido = "El apellido es obligatorio";
+    }
+
+    if (!form.persona.fechanacimiento) {
+      newErrors.fechanacimiento = "La fecha de nacimiento es obligatoria";
+    }
+
+    if (!form.persona.telefono.trim()) {
+      newErrors.telefono = "El teléfono es obligatorio";
+    } else if (!validateNumber(form.persona.telefono)) {
+      newErrors.telefono = "El teléfono solo debe contener números";
+    }
+
+    if (!form.persona.email.trim()) {
+      newErrors.email = "El email es obligatorio";
+    } else if (!validateEmail(form.persona.email)) {
+      newErrors.email = "El formato del email no es válido";
+    }
+
+    if (!form.persona.sexo) {
+      newErrors.sexo = "Debe seleccionar un sexo";
+    }
 
     // Afiliado
-    if (!form.afiliado.idafiliado)
-      newErrors.idafiliado = "El ID Afiliado es obligatorio.";
-    if (!form.afiliado.area) newErrors.area = "El área es obligatoria.";
-    if (!form.afiliado.cargo) newErrors.cargo = "El cargo es obligatorio.";
-    if (!form.afiliado.tipocontratacion)
-      newErrors.tipocontratacion = "El tipo de contratación es obligatorio.";
-    if (!form.afiliado.legajo) newErrors.legajo = "El legajo es obligatorio.";
-    if (!form.afiliado.categoria)
-      newErrors.categoria = "La categoría es obligatoria.";
-    if (!form.afiliado.fechaafiliacion)
-      newErrors.fechaafiliacion = "La fecha de afiliación es obligatoria.";
-    if (!form.afiliado.fechamunicipio)
-      newErrors.fechamunicipio = "La fecha municipio es obligatoria.";
-    if (!form.afiliado.lugartrabajo)
-      newErrors.lugartrabajo = "El lugar de trabajo es obligatorio.";
+    if (!form.afiliado.idafiliado.trim()) {
+      newErrors.idafiliado = "El ID de afiliado es obligatorio";
+    }
 
-    // Hijos
+    if (!form.afiliado.area.trim()) {
+      newErrors.area = "El área es obligatoria";
+    }
+
+    if (!form.afiliado.cargo.trim()) {
+      newErrors.cargo = "El cargo es obligatorio";
+    }
+
+    if (!form.afiliado.tipocontratacion) {
+      newErrors.tipocontratacion = "Debe seleccionar un tipo de contratación";
+    }
+
+    if (!form.afiliado.legajo.trim()) {
+      newErrors.legajo = "El legajo es obligatorio";
+    }
+
+    if (!form.afiliado.categoria.trim()) {
+      newErrors.categoria = "La categoría es obligatoria";
+    }
+
+    if (!form.afiliado.fechaafiliacion) {
+      newErrors.fechaafiliacion = "La fecha de afiliación es obligatoria";
+    }
+
+    if (!form.afiliado.fechamunicipio) {
+      newErrors.fechamunicipio = "La fecha de municipio es obligatoria";
+    }
+
+    if (!form.afiliado.lugartrabajo.trim()) {
+      newErrors.lugartrabajo = "El lugar de trabajo es obligatorio";
+    }
+
+    // Validar hijos
     form.hijos.forEach((hijo: Hijo, idx: number) => {
-      if (!hijo.nombre) newErrors[`hijo_nombre_${idx}`] = "El nombre es obligatorio.";
-      if (!hijo.sexo) newErrors[`hijo_sexo_${idx}`] = "El sexo es obligatorio.";
-      if (!hijo.fechanacimiento)
-        newErrors[`hijo_fechanacimiento_${idx}`] = "La fecha de nacimiento es obligatoria.";
+      if (!hijo.nombre.trim()) {
+        newErrors[`hijo_nombre_${idx}`] = "El nombre del hijo es obligatorio";
+      }
+      if (!hijo.sexo) {
+        newErrors[`hijo_sexo_${idx}`] = "Debe seleccionar el sexo del hijo";
+      }
+      if (!hijo.fechanacimiento) {
+        newErrors[`hijo_fechanacimiento_${idx}`] = "La fecha de nacimiento del hijo es obligatoria";
+      }
     });
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
+  // Ejecutar validación cuando cambian los campos (solo si ya se intentó enviar)
+  useEffect(() => {
+    if (showValidationErrors) {
+      validate();
+    }
+  }, [form, showValidationErrors]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!validate() || isSubmitting) return;
+    
+    if (isSubmitting) return;
 
+    // Activar la visualización de errores
+    setShowValidationErrors(true);
+
+    // FORZAR validación antes de enviar
+    const isValid = validate();
+    
+    if (!isValid) {
+      // Limpiar resultado anterior y mostrar error de validación
+      setResult({
+        error: "Por favor, completa todos los campos obligatorios marcados con *",
+        type: "validation"
+      });
+      
+      // Contar errores
+      const errorCount = Object.keys(errors).length;
+      console.log(`Se encontraron ${errorCount} errores de validación`);
+      
+      // Hacer scroll al primer error
+      setTimeout(() => {
+        const firstErrorElement = document.querySelector('.border-red-500');
+        if (firstErrorElement) {
+          firstErrorElement.scrollIntoView({ 
+            behavior: 'smooth', 
+            block: 'center' 
+          });
+        }
+      }, 100);
+      
+      return;
+    }
+
+    // Limpiar errores de validación si todo está bien
+    setResult(null);
     setIsSubmitting(true);
+
     try {
       const method = initialData ? "PUT" : "POST";
       const url = initialData
@@ -163,15 +283,34 @@ export default function AfiliadoForm({
       });
       
       const data = await res.json();
-      setResult(data);
+      
+      if (!res.ok) {
+        setResult({
+          error: `Error del servidor: ${data.error || "Error desconocido"}`,
+          type: "server"
+        });
+        return;
+      }
+      
+      setResult({
+        message: data.message,
+        username: data.username,
+        password: data.password,
+        type: "success"
+      });
       
       // Esperar un momento para mostrar el resultado antes de cerrar
       setTimeout(() => {
         onSaved();
         onClose();
       }, 2000);
+      
     } catch (error) {
       console.error("Error al guardar:", error);
+      setResult({
+        error: "Error de conexión. Verifica tu conexión a internet e intenta nuevamente.",
+        type: "network"
+      });
     } finally {
       setIsSubmitting(false);
     }
@@ -195,8 +334,6 @@ export default function AfiliadoForm({
       [section]: { ...form[section as keyof typeof form], [field]: value },
     });
   };
-
-  const isFormValid = Object.keys(errors).length === 0;
 
   return (
     <div className="w-full max-w-4xl mx-auto max-h-[90vh] overflow-hidden flex flex-col bg-white rounded-xl">
@@ -686,8 +823,8 @@ export default function AfiliadoForm({
                           }}
                         >
                           <option value="">Seleccionar</option>
-                          <option value="Masculino">Masculino</option>
-                          <option value="Femenino">Femenino</option>
+                          <option value="M">Masculino</option>
+                          <option value="F">Femenino</option>
                           <option value="Otro">Otro</option>
                         </select>
                         {errors[`hijo_sexo_${idx}`] && (
@@ -726,22 +863,58 @@ export default function AfiliadoForm({
             )}
           </div>
 
-          {/* Resultado */}
+          {/* Resultado y Errores */}
           {result && (
-            <div className="bg-gradient-to-r from-green-100 to-emerald-100 border border-green-300 rounded-lg p-6">
-              <div className="flex items-center gap-3 mb-3">
-                <div className="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center">
-                  <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                  </svg>
+            <div className={`rounded-lg p-6 border-2 ${
+              result.type === 'success' 
+                ? 'bg-gradient-to-r from-green-100 to-emerald-100 border-green-300' 
+                : 'bg-gradient-to-r from-red-100 to-pink-100 border-red-300'
+            }`}>
+              {result.type === 'success' ? (
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center">
+                    <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                    </svg>
+                  </div>
+                  <h3 className="text-lg font-bold text-green-800">
+                    {result.message}
+                  </h3>
                 </div>
-                <h3 className="text-lg font-bold text-green-800">
-                  ✅ {result.message}
-                </h3>
-              </div>
+              ) : (
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="w-8 h-8 bg-red-500 rounded-full flex items-center justify-center">
+                    <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </div>
+                  <h3 className="text-lg font-bold text-red-800">
+                    {result.error}
+                  </h3>
+                </div>
+              )}
+              
+              {result.type === 'validation' && Object.keys(errors).length > 0 && (
+                <div className="mt-4 p-4 bg-white rounded-lg border border-red-200">
+                  <h4 className="font-semibold text-red-800 mb-2">
+                    Campos que requieren atención ({Object.keys(errors).length}):
+                  </h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
+                    {Object.entries(errors).map(([field, message]: [string, string]) => (
+                      <div key={field} className="flex items-center gap-2 text-red-700">
+                        <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        <span>{message}</span>
+                      </div>
+                    ))}
+                  </div>
+                  </div>
+                
+              )}
               
               {result.username && result.password && (
-                <div className="bg-white rounded-lg p-4 border border-green-200">
+                <div className="mt-4 bg-white rounded-lg p-4 border border-green-200">
                   <h4 className="font-semibold text-green-800 mb-2">Credenciales de acceso:</h4>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
@@ -773,11 +946,11 @@ export default function AfiliadoForm({
           </button>
           <button
             onClick={handleSubmit}
-            disabled={!isFormValid || isSubmitting}
+            disabled={isSubmitting}
             className={`flex-1 font-semibold py-3 px-6 rounded-lg shadow transition-all duration-200 flex items-center justify-center gap-2 ${
-              isFormValid && !isSubmitting
+              !isSubmitting
                 ? "bg-gradient-to-r from-blue-600 to-blue-700 text-white hover:shadow-lg hover:scale-[1.02]"
-                : "bg-slate-300 text-slate-500 cursor-not-allowed"
+                : "bg-slate-400 text-slate-600 cursor-not-allowed"
             }`}
           >
             {isSubmitting ? (

@@ -124,6 +124,7 @@ export default function AfiliadoList({
             {/* Header de la tabla */}
             <div className="bg-gradient-to-r from-slate-50 to-slate-100 border-b border-slate-200">
               <div className="grid grid-cols-12 gap-4 p-4 font-semibold text-slate-700 text-sm">
+                <div className="col-span-2">Legajo</div>
                 <div className="col-span-2">DNI</div>
                 <div className="col-span-2">Nombre</div>
                 <div className="col-span-2">Apellido</div>
@@ -139,10 +140,14 @@ export default function AfiliadoList({
                 const isActive = getAfiliadoActivo(afiliado);
                 
                 return (
+
                   <div
                     key={afiliado.idafiliado || afiliado.afiliado?.idafiliado || index}
                     className="grid grid-cols-12 gap-4 p-4 hover:bg-slate-50 transition-colors duration-150"
                   >
+                    <div className="col-span-2 font-medium text-slate-900">
+                      {afiliado.legajo || "N/A"}
+                    </div>
                     <div className="col-span-2 font-medium text-slate-900">
                       {afiliado.persona?.dni || "N/A"}
                     </div>

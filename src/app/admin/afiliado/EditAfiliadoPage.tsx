@@ -1,10 +1,10 @@
+// EditAfiliadoPage.tsx - Versión corregida
 "use client";
 
 import React, { useState, useEffect } from "react";
 import { useRouter, useParams } from "next/navigation";
 import AfiliadoForm from "./AfiliadoForm";
 
-// Definir las interfaces para el tipado
 interface Persona {
   dni: string;
   nombre: string;
@@ -31,6 +31,7 @@ interface Afiliado {
 interface AfiliadoCompleto {
   persona: Persona;
   afiliado: Afiliado;
+  hijos?: any[];
   activo?: boolean;
 }
 
@@ -46,28 +47,37 @@ export default function EditAfiliadoPage() {
   useEffect(() => {
     const loadAfiliado = async () => {
       try {
-        // Primero intentar cargar desde localStorage (si viene de la lista)
+        let afiliadoData = null;
+
+        // Primero intentar cargar desde localStorage
         const storedAfiliado = localStorage.getItem('editingAfiliado');
         if (storedAfiliado) {
           const parsedAfiliado = JSON.parse(storedAfiliado);
-          setAfiliado(parsedAfiliado);
-          localStorage.removeItem('editingAfiliado'); // Limpiar después de usar
-          setLoading(false);
-          return;
+          
+          // Normalizar la estructura de datos desde localStorage
+          afiliadoData = normalizeAfiliadoData(parsedAfiliado);
+          localStorage.removeItem('editingAfiliado');
         }
 
         // Si no hay datos en localStorage, cargar desde la API
-        if (afiliadoId) {
+        if (!afiliadoData && afiliadoId) {
           const response = await fetch(`/api/afiliados/${afiliadoId}`);
           if (!response.ok) {
             throw new Error('Error al cargar el afiliado');
           }
           const data = await response.json();
-          setAfiliado(data);
-        } else {
-          throw new Error('ID de afiliado no encontrado');
+          afiliadoData = normalizeAfiliadoData(data);
         }
-              } catch (err) {
+
+        if (!afiliadoData) {
+          throw new Error('No se pudieron cargar los datos del afiliado');
+        }
+
+        console.log('Datos cargados para edición:', afiliadoData); // Debug
+        setAfiliado(afiliadoData);
+        
+      } catch (err) {
+        console.error('Error cargando afiliado:', err);
         setError(err instanceof Error ? err.message : 'Error desconocido');
       } finally {
         setLoading(false);
@@ -77,13 +87,51 @@ export default function EditAfiliadoPage() {
     loadAfiliado();
   }, [afiliadoId]);
 
+  // Función para normalizar los datos independientemente de su estructura origen
+  const normalizeAfiliadoData = (data: any): AfiliadoCompleto => {
+    console.log('Datos recibidos para normalizar:', data); // Debug
+    
+    // Determinar si los datos vienen de la lista (estructura anidada) o de la API directa
+    const persona = data.persona || {
+      dni: data.dni,
+      nombre: data.nombre,
+      apellido: data.apellido,
+      fechanacimiento: data.fechanacimiento,
+      telefono: data.telefono,
+      email: data.email,
+      sexo: data.sexo
+    };
+
+    const afiliado = data.afiliado || {
+      idafiliado: data.idafiliado,
+      area: data.area,
+      cargo: data.cargo,
+      tipocontratacion: data.tipocontratacion,
+      legajo: data.legajo,
+      categoria: data.categoria,
+      fechaafiliacion: data.fechaafiliacion,
+      fechamunicipio: data.fechamunicipio,
+      lugartrabajo: data.lugartrabajo,
+      activo: data.activo
+    };
+
+    const normalized = {
+      persona,
+      afiliado,
+      hijos: data.hijos || [],
+      activo: data.activo ?? afiliado.activo ?? true
+    };
+
+    console.log('Datos normalizados:', normalized); // Debug
+    return normalized;
+  };
+
   const handleSaved = () => {
-    // Regresar a la lista de afiliados después de guardar
     router.push('/afiliados');
   };
 
   const handleCancel = () => {
-    router.back(); // Regresar a la página anterior
+    router.back();
   };
 
   if (loading) {
@@ -174,7 +222,7 @@ export default function EditAfiliadoPage() {
             onClose={handleCancel}
             onSaved={handleSaved}
             initialData={afiliado}
-            isFullPage={true} // Nueva prop para indicar que es página completa
+            isFullPage={true}
           />
         </div>
       </div>
