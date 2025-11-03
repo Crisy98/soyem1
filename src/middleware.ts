@@ -19,30 +19,14 @@ export async function middleware(req: NextRequest) {
   
   // RUTAS DE ADMIN - Requieren autenticación de administrador
   if (path.startsWith("/admin")) {
-    // Permitir acceso al login de admin sin autenticación
+    // Redirigir /admin/login a /login (ahora hay un solo login)
     if (path === "/admin/login") {
-      // Si ya tiene token válido de admin, redirigir al panel
-      if (token) {
-        try {
-          const secret = new TextEncoder().encode(process.env.JWT_SECRET);
-          const { payload } = await jwtVerify(token, secret);
-          const decoded = payload as unknown as DecodedToken;
-          
-          if (decoded.roles === "administrador" && decoded.activo) {
-            return NextResponse.redirect(new URL("/admin/afiliado", req.url));
-          }
-        } catch (err) {
-          // Token inválido, permitir acceso al login
-        }
-      }
-      const response = NextResponse.next();
-      response.headers.set("x-middleware-admin-login", "allowed");
-      return response;
+      return NextResponse.redirect(new URL("/login", req.url));
     }
 
     // Para cualquier otra ruta /admin/*, verificar autenticación
     if (!token) {
-      const response = NextResponse.redirect(new URL("/admin/login", req.url));
+      const response = NextResponse.redirect(new URL("/login?redirect=admin", req.url));
       response.headers.set("x-middleware-redirect-reason", "no-token");
       return response;
     }
