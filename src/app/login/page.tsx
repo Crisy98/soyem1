@@ -26,7 +26,9 @@ export default function LoginPage() {
 
       if (res.ok) {
         // Redirigir según el rol
-        if (data.roles === "comercio") {
+        if (data.roles === "administrador") {
+          router.push("/admin/afiliado");
+        } else if (data.roles === "comercio") {
           router.push("/comercio");
         } else if (data.roles === "afiliado") {
           router.push("/afiliado");
@@ -106,16 +108,6 @@ export default function LoginPage() {
             {loading ? "Iniciando sesión..." : "Iniciar Sesión"}
           </button>
         </form>
-
-        {/* Link al admin */}
-        <div className="mt-6 text-center">
-          <a
-            href="/admin/login"
-            className="text-sm text-gray-600 hover:text-blue-600 transition"
-          >
-            ¿Eres administrador? Ingresa aquí
-          </a>
-        </div>
       </div>
     </div>
   );
