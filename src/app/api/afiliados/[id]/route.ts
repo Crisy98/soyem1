@@ -44,7 +44,7 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   try {
-    const { id } = params;
+    const { id } = await params;
 
     // Traer afiliado + persona - AGREGAR activo al SELECT
     const afiliadoRes = await pool.query(

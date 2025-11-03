@@ -10,6 +10,7 @@ export async function GET() {
       `SELECT 
   a.idafiliado,
   a.area,
+
   a.cargo,
   a.tipocontratacion,
   a.legajo,

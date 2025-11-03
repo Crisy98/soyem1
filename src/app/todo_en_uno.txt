@@ -1100,6 +1100,7 @@ export default function AfiliadoList({
             {/* Header de la tabla */}
             <div className="bg-gradient-to-r from-slate-50 to-slate-100 border-b border-slate-200">
               <div className="grid grid-cols-12 gap-4 p-4 font-semibold text-slate-700 text-sm">
+                <div className="col-span-2">Legajo</div>
                 <div className="col-span-2">DNI</div>
                 <div className="col-span-2">Nombre</div>
                 <div className="col-span-2">Apellido</div>
@@ -1115,10 +1116,14 @@ export default function AfiliadoList({
                 const isActive = getAfiliadoActivo(afiliado);
                 
                 return (
+
                   <div
                     key={afiliado.idafiliado || afiliado.afiliado?.idafiliado || index}
                     className="grid grid-cols-12 gap-4 p-4 hover:bg-slate-50 transition-colors duration-150"
                   >
+                    <div className="col-span-2 font-medium text-slate-900">
+                      {afiliado.legajo || "N/A"}
+                    </div>
                     <div className="col-span-2 font-medium text-slate-900">
                       {afiliado.persona?.dni || "N/A"}
                     </div>
@@ -1530,7 +1535,7 @@ export default function Modal({
 
   return (
     <div 
-      className="fixed inset-0 bg-black bg-opacity-60 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+      className="fixed inset-0 bg-black bg-opacity-40 backdrop-blur-sm flex items-center justify-center z-50 p-4"
       onClick={handleBackdropClick}
     >
       <div 
@@ -1981,7 +1986,7 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   try {
-    const { id } = params;
+    const { id } = await params;
 
     // Traer afiliado + persona - AGREGAR activo al SELECT
     const afiliadoRes = await pool.query(
@@ -2007,13 +2012,22 @@ export async function GET(
       [afiliado.dni]
     );
 
-    // Traer usuario
-    const userRes = await pool.query(
-      `SELECT id, username, roles
-       FROM users
-       WHERE idafiliado = $1`,
-      [id]
-    );
+    // Traer usuario (si existe)
+    let usuario = null;
+    try {
+      const userRes = await pool.query(
+        `SELECT id, username, roles
+         FROM users
+         WHERE idafiliado = $1`,
+        [id]
+      );
+      if (userRes.rowCount > 0) {
+        usuario = userRes.rows[0];
+      }
+    } catch (userErr) {
+      console.warn("No se pudo obtener informaciÃ³n del usuario:", userErr);
+      // Continuamos sin la informaciÃ³n del usuario
+    }
 
     // Estructura consistente con la lista
     return NextResponse.json({
@@ -2039,7 +2053,7 @@ export async function GET(
         activo: afiliado.activo ?? true, // Asegurar que siempre tenga un valor
       },
       hijos: hijosRes.rows,
-      usuario: userRes.rows[0] ?? null,
+      usuario,
       activo: afiliado.activo ?? true, // TambiÃ©n a nivel raÃ­z para compatibilidad
     });
   } catch (err) {
@@ -2154,6 +2168,7 @@ export async function GET() {
       `SELECT 
   a.idafiliado,
   a.area,
+
   a.cargo,
   a.tipocontratacion,
   a.legajo,
@@ -2239,23 +2254,58 @@ export async function POST(req: Request) {
       ]
     );
 
+    // Validate and convert idafiliado to integer
+    const idafiliado = parseInt(String(afiliado.idafiliado), 10);
+    if (isNaN(idafiliado)) {
+      return NextResponse.json(
+        { error: "El ID del afiliado debe ser un nÃºmero vÃ¡lido" },
+        { status: 400 }
+      );
+    }
+
+    // Validate and convert dni to integer
+    const dni = parseInt(String(persona.dni), 10);
+    if (isNaN(dni)) {
+      return NextResponse.json(
+        { error: "El DNI debe ser un nÃºmero vÃ¡lido" },
+        { status: 400 }
+      );
+    }
+
+    // Validate and convert legajo to integer
+    const legajo = parseInt(String(afiliado.legajo), 10);
+    if (isNaN(legajo)) {
+      return NextResponse.json(
+        { error: "El legajo debe ser un nÃºmero vÃ¡lido" },
+        { status: 400 }
+      );
+    }
+
+    // Convert categoria to integer or null
+    const categoria = afiliado.categoria ? parseInt(String(afiliado.categoria), 10) : null;
+    if (afiliado.categoria !== undefined && isNaN(categoria!)) {
+      return NextResponse.json(
+        { error: "La categorÃ­a debe ser un nÃºmero vÃ¡lido" },
+        { status: 400 }
+      );
+    }
+
     // 2. Insert afiliado
     await pool.query(
       `INSERT INTO afiliados 
         (idafiliado, dni, area, cargo, tipocontratacion, legajo, categoria, fechaafiliacion, fechamunicipio, lugartrabajo)
        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)`,
       [
-        afiliado.idafiliado,
-        persona.dni,
+        idafiliado,
+        dni,
         afiliado.area,
         afiliado.cargo,
         afiliado.tipocontratacion,
-        afiliado.legajo,
-        afiliado.categoria ?? null,
+        legajo,
+        categoria,
         afiliado.fechaafiliacion,
         afiliado.fechamunicipio ?? null,
-        afiliado.lugartrabajo ?? null,
-        
+        afiliado.lugartrabajo ?? null
       ]
     );
 
