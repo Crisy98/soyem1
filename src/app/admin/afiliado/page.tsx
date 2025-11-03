@@ -4,13 +4,17 @@ import React, { useState, useEffect } from "react";
 import AfiliadoList from "./AfiliadoList";
 import AfiliadoForm from "./AfiliadoForm";
 import Modal from "./Modal";
+import CambiarContrasenaModal from "@/components/CambiarContrasenaModal";
+import CambiarContrasenaAdminModal from "@/components/CambiarContrasenaAdminModal";
 
 export default function AfiliadosPage() {
   const [afiliados, setAfiliados] = useState<any[]>([]);
   const [showModal, setShowModal] = useState(false);
   const [editAfiliado, setEditAfiliado] = useState<any>(null);
   const [viewAfiliado, setViewAfiliado] = useState<any>(null);
-
+  const [mostrarCambiarContrasena, setMostrarCambiarContrasena] = useState(false);
+  const [afiliadoParaCambiarPassword, setAfiliadoParaCambiarPassword] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
 
   // Editar
   const handleEdit = (afiliado: any) => {
@@ -18,12 +22,12 @@ export default function AfiliadosPage() {
     setShowModal(true);
   };
 
-
   // Cargar afiliados
   const fetchAfiliados = async () => {
     const res = await fetch("/api/afiliados");
     const data = await res.json();
     setAfiliados(data);
+    setLoading(false);
   };
 
   useEffect(() => {
@@ -35,7 +39,6 @@ export default function AfiliadosPage() {
     await fetch(`/api/afiliados/${id}`, { method: "DELETE" });
     fetchAfiliados();
   };
-
 
   // Agregar
   const handleAdd = () => {
@@ -58,64 +61,88 @@ export default function AfiliadosPage() {
 
   // Función helper para obtener el estado activo correctamente
   const getAfiliadoActivo = (afiliado: any) => {
-    // Intenta diferentes estructuras posibles
-    return afiliado?.activo ?? afiliado?.afiliado?.activo ?? true; // Por defecto activo si no se especifica
+    return afiliado?.activo ?? afiliado?.afiliado?.activo ?? true;
+  };
+
+  // Función para abrir el modal de cambio de contraseña para un afiliado específico
+  const handleChangePassword = async (afiliado: any) => {
+    // Obtener el usuario del afiliado
+    const idafiliado = afiliado.idafiliado || afiliado.afiliado?.idafiliado;
+    
+    try {
+      const res = await fetch(`/api/afiliados/${idafiliado}`);
+      const data = await res.json();
+      
+      if (data.usuario) {
+        setAfiliadoParaCambiarPassword({
+          id: data.usuario.id,
+          username: data.usuario.username,
+          nombre: data.persona.nombre,
+          apellido: data.persona.apellido,
+          tipo: 'afiliado' as const
+        });
+        setMostrarCambiarContrasena(true);
+      } else {
+        alert('Este afiliado no tiene un usuario asignado en el sistema');
+      }
+    } catch (error) {
+      console.error('Error obteniendo datos del afiliado:', error);
+      alert('Error al obtener los datos del afiliado');
+    }
   };
 
   // Conteo correcto de afiliados activos
   const afiliadosActivos = afiliados.filter(afiliado => getAfiliadoActivo(afiliado)).length;
 
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center h-64">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      </div>
+    );
+  }
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
-      <div className="w-auto mx-auto px-4 py-8">
-        {/* Header Section */}
-        <div className="bg-white rounded-xl shadow-lg border border-slate-200 p-8 mb-8">
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-            <div className="space-y-2">
-              <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-blue-800 bg-clip-text text-transparent">
-                Gestión de Afiliados
-              </h1>
-              <p className="text-slate-600 text-lg">
-                Administra y gestiona todos los afiliados del sindicato
-              </p>
-              <div className="flex items-center gap-4 text-sm text-slate-500">
-                <span className="flex items-center gap-1">
-                  <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                  Total: {afiliados.length} afiliados
-                </span>
-                <span className="flex items-center gap-1">
-                  <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                  Activos: {afiliadosActivos}
-                </span>
-                <span className="flex items-center gap-1">
-                  <div className="w-2 h-2 bg-red-500 rounded-full"></div>
-                  Inactivos: {afiliados.length - afiliadosActivos}
-                </span>
-              </div>
-            </div>
-            <button
-              className="flex items-center gap-2 bg-gradient-to-r from-green-600 to-green-700 text-white px-6 py-3 rounded-lg shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-105 font-semibold"
-              onClick={handleAdd}
-            >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-              </svg>
-              Agregar Afiliado
-            </button>
+    <div className="space-y-6">
+      {/* Header Section - Más compacto */}
+      <div className="flex justify-between items-center">
+        <div>
+          <h2 className="text-2xl font-bold text-gray-800">Gestión de Afiliados</h2>
+          <div className="flex items-center gap-4 text-sm text-slate-500 mt-1">
+            <span className="flex items-center gap-1">
+              <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+              Total: {afiliados.length}
+            </span>
+            <span className="flex items-center gap-1">
+              <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+              Activos: {afiliadosActivos}
+            </span>
+            <span className="flex items-center gap-1">
+              <div className="w-2 h-2 bg-red-500 rounded-full"></div>
+              Inactivos: {afiliados.length - afiliadosActivos}
+            </span>
           </div>
         </div>
-
-        {/* Lista de Afiliados */}
-        <div className="bg-white rounded-xl shadow-lg border border-slate-200 overflow-hidden">
-          <AfiliadoList
-            afiliados={afiliados}
-            onEdit={handleEdit}
-            onDelete={handleDelete}
-            onView={handleView}
-            getAfiliadoActivo={getAfiliadoActivo} // Pasamos la función helper
-          />
-        </div>
+        <button
+          className="flex items-center gap-2 bg-green-600 text-white px-4 py-2 rounded-lg shadow hover:bg-green-700 transition font-semibold"
+          onClick={handleAdd}
+        >
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+          </svg>
+          Agregar Afiliado
+        </button>
       </div>
+
+      {/* Lista de Afiliados */}
+      <AfiliadoList
+        afiliados={afiliados}
+        onEdit={handleEdit}
+        onDelete={handleDelete}
+        onView={handleView}
+        onChangePassword={handleChangePassword}
+        getAfiliadoActivo={getAfiliadoActivo}
+      />
 
       {/* Modal para agregar/editar */}
       {showModal && !viewAfiliado && (
@@ -276,7 +303,7 @@ export default function AfiliadosPage() {
                 {!viewAfiliado.hijos || viewAfiliado.hijos.length === 0 ? (
                   <div className="text-center py-8">
                     <div className="w-16 h-16 bg-slate-200 rounded-full mx-auto mb-4 flex items-center justify-center">
-                      <svg className="w-8 h-8 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <svg className="w-8 h-8 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
                       </svg>
                     </div>
@@ -339,12 +366,12 @@ export default function AfiliadosPage() {
                 ) : (
                   <div className="text-center py-8">
                     <div className="w-16 h-16 bg-slate-200 rounded-full mx-auto mb-4 flex items-center justify-center">
-                      <svg className="w-8 h-8 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <svg className="w-8 h-8 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
                       </svg>
                     </div>
                     <p className="text-slate-500 text-lg">No tiene usuario asignado</p>
-                    <p className="text-slate-400 text-sm mt-1">Este afiliado no puede acceder al sistema</p>
+                    <p className="text-slate-500 text-sm mt-1">Este afiliado no puede acceder al sistema</p>
                   </div>
                 )}
               </div>
@@ -364,7 +391,6 @@ export default function AfiliadosPage() {
                 </button>
                 <button
                   onClick={() => {
-                    // Redirigir a edición desde el modal de vista
                     localStorage.setItem('editingAfiliado', JSON.stringify(viewAfiliado));
                     window.location.href = `/afiliados/editar/${viewAfiliado.idafiliado || viewAfiliado.afiliado?.idafiliado}`;
                   }}
@@ -377,6 +403,15 @@ export default function AfiliadosPage() {
           </div>
         </Modal>
       )}
+
+      <CambiarContrasenaAdminModal
+        isOpen={mostrarCambiarContrasena}
+        onClose={() => {
+          setMostrarCambiarContrasena(false);
+          setAfiliadoParaCambiarPassword(null);
+        }}
+        usuario={afiliadoParaCambiarPassword}
+      />
     </div>
   );
 }

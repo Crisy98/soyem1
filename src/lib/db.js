@@ -49,7 +49,9 @@ const connectionString =
     : parsedEnv.DATABASE_URL;
 
 // DEBUG enmascarado (no mostrar password)
-const masked = typeof connectionString === "string" ? connectionString.replace(/:\/\/([^:]+):([^@]+)@/, "://$1:***@") : connectionString;
+const masked = typeof connectionString === "string" 
+  ? connectionString.replace(/:\/\/([^:]+):([^@]+)@/, "://$1:***@") 
+  : connectionString;
 console.log("DEBUG ─ connectionString (masked):", masked, "typeof:", typeof connectionString);
 
 if (!connectionString || typeof connectionString !== "string") {
@@ -59,11 +61,28 @@ if (!connectionString || typeof connectionString !== "string") {
   );
 }
 
+// Configuración de SSL para producción (Vercel, Neon, etc.)
 const isProduction = process.env.NODE_ENV === "production";
-const ssl = isProduction ? { rejectUnauthorized: false } : false;
+let sslConfig = false;
+
+if (isProduction) {
+  // Para Vercel Postgres, Neon, Supabase, etc.
+  sslConfig = {
+    rejectUnauthorized: false, // Acepta certificados self-signed
+  };
+}
 
 export const pool = new Pool({
   connectionString,
-  ssl,
+  ssl: sslConfig,
+  // Configuraciones adicionales para serverless (Vercel)
+  max: 20, // máximo de conexiones en el pool
+  idleTimeoutMillis: 30000, // cerrar conexiones idle después de 30s
+  connectionTimeoutMillis: 10000, // timeout de conexión 10s
+});
+
+// Manejar errores del pool
+pool.on('error', (err) => {
+  console.error('Error inesperado en el pool de conexiones:', err);
 });
 

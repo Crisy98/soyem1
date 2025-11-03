@@ -6,35 +6,52 @@ import crypto from "crypto";
 
 export async function GET() {
   try {
+    // Primero obtener los afiliados con sus personas
     const result = await pool.query(
       `SELECT 
-  a.idafiliado,
-  a.area,
-
-  a.cargo,
-  a.tipocontratacion,
-  a.legajo,
-  a.categoria,
-  a.fechaafiliacion,
-  a.fechamunicipio,
-  a.lugartrabajo,
-  a.activo,  
-  json_build_object(
-    'dni', p.dni,
-    'nombre', p.nombre,
-    'apellido', p.apellido,
-    'fechanacimiento', p.fechanacimiento,
-    'telefono', p.telefono,
-    'email', p.email,
-    'sexo', p.sexo
-  ) as persona
-FROM afiliados a
-JOIN personas p ON a.dni = p.dni
-ORDER BY p.apellido ASC
-`
+        a.idafiliado,
+        a.area,
+        a.cargo,
+        a.tipocontratacion,
+        a.legajo,
+        a.categoria,
+        a.fechaafiliacion,
+        a.fechamunicipio,
+        a.lugartrabajo,
+        a.activo,
+        a.dni,
+        json_build_object(
+          'dni', p.dni,
+          'nombre', p.nombre,
+          'apellido', p.apellido,
+          'fechanacimiento', p.fechanacimiento,
+          'telefono', p.telefono,
+          'email', p.email,
+          'sexo', p.sexo
+        ) as persona
+      FROM afiliados a
+      JOIN personas p ON a.dni = p.dni
+      ORDER BY p.apellido ASC`
     );
 
-    return NextResponse.json(result.rows);
+    // Luego obtener los hijos de cada afiliado
+    const afiliadosConHijos = await Promise.all(
+      result.rows.map(async (afiliado: any) => {
+        const hijosResult = await pool.query(
+          `SELECT idhijo, nombre, sexo, fechanacimiento
+           FROM hijos
+           WHERE dni = $1`,
+          [afiliado.dni]
+        );
+        
+        return {
+          ...afiliado,
+          hijos: hijosResult.rows
+        };
+      })
+    );
+
+    return NextResponse.json(afiliadosConHijos);
   } catch (err) {
     console.error("Error obteniendo afiliados:", err);
     return NextResponse.json(
@@ -126,7 +143,10 @@ export async function POST(req: Request) {
     }
 
     // 4. Crear usuario
-    const username = `${persona.nombre.toLowerCase()}.${persona.apellido.toLowerCase()}`;
+    // Tomar solo el primer nombre y primer apellido
+    const primerNombre = persona.nombre.trim().split(/\s+/)[0].toLowerCase();
+    const primerApellido = persona.apellido.trim().split(/\s+/)[0].toLowerCase();
+    const username = `${primerNombre}.${primerApellido}`;
     const plainPassword = crypto.randomBytes(9).toString("base64").slice(0, 12); // contraseña aleatoria 12 chars
     const password_hash = await bcrypt.hash(plainPassword, 10);
 

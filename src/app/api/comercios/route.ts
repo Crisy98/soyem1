@@ -1,5 +1,10 @@
 import { pool } from "@/lib/db";
 import { NextResponse } from "next/server";
+import bcrypt from "bcrypt";
+
+function generateRandomPassword(): string {
+  return Array.from({ length: 12 }, () => Math.floor(Math.random() * 10)).join('');
+}
 
 export async function GET() {
   try {
@@ -48,11 +53,10 @@ export async function POST(req: Request) {
       numerocalle,
       localidad,
       idrubro,
-      idusuario,
     } = data;
 
     // Validaciones
-    if (!nombrecomercio || !fechaafiliacion || !idrubro || !idusuario) {
+    if (!nombrecomercio || !fechaafiliacion || !idrubro) {
       return NextResponse.json(
         { error: "Faltan campos obligatorios" },
         { status: 400 }
@@ -72,40 +76,58 @@ export async function POST(req: Request) {
       );
     }
 
-    // Verificar que el usuario existe
-    const userExists = await pool.query(
-      "SELECT id FROM users WHERE id = $1",
-      [idusuario]
-    );
+    // Iniciar transacción
+    await pool.query('BEGIN');
 
-    if (userExists.rowCount === 0) {
-      return NextResponse.json(
-        { error: "El usuario especificado no existe" },
-        { status: 400 }
+    try {
+      // 1. Generar datos de usuario
+      const username = nombrecomercio.toLowerCase()
+        .replace(/[^a-z0-9]/g, '') // Eliminar caracteres especiales
+        .slice(0, 15); // Limitar longitud
+      const password = generateRandomPassword();
+      const hashedPassword = await bcrypt.hash(password, 10);
+
+      // 2. Crear usuario
+      const userResult = await pool.query(
+        `INSERT INTO users (username, password_hash, roles)
+         VALUES ($1, $2, 'comercio')
+         RETURNING id`,
+        [username, hashedPassword]
       );
+
+      const userId = userResult.rows[0].id;
+
+      // 3. Insertar comercio
+      const comercioResult = await pool.query(
+        `INSERT INTO comercios 
+          (nombrecomercio, fechaafiliacion, calle, numerocalle, localidad, idrubro, idusuario, activo)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, true)
+         RETURNING *`,
+        [
+          nombrecomercio,
+          fechaafiliacion,
+          calle || null,
+          numerocalle || null,
+          localidad || null,
+          idrubro,
+          userId,
+        ]
+      );
+
+      // Confirmar transacción
+      await pool.query('COMMIT');
+
+      return NextResponse.json({
+        message: "Comercio creado correctamente",
+        comercio: comercioResult.rows[0],
+        username,
+        password, // Devolver en el nivel raíz para que el formulario lo capture
+      });
+    } catch (error) {
+      // Si hay error, revertir la transacción
+      await pool.query('ROLLBACK');
+      throw error;
     }
-
-    // Insertar comercio
-    const result = await pool.query(
-      `INSERT INTO comercios 
-        (nombrecomercio, fechaafiliacion, calle, numerocalle, localidad, idrubro, idusuario, activo)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, true)
-       RETURNING *`,
-      [
-        nombrecomercio,
-        fechaafiliacion,
-        calle || null,
-        numerocalle || null,
-        localidad || null,
-        idrubro,
-        idusuario,
-      ]
-    );
-
-    return NextResponse.json({
-      message: "Comercio creado correctamente",
-      comercio: result.rows[0],
-    });
   } catch (err) {
     console.error("Error creando comercio:", err);
     return NextResponse.json(

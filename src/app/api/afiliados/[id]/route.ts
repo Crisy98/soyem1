@@ -153,13 +153,13 @@ export async function PUT(
       const legajo = Number(afiliado.legajo);
       const categoria = !isNaN(Number(afiliado.categoria)) ? Number(afiliado.categoria) : 0;
 
-      // 2. Actualizar afiliado
+      // 2. Actualizar afiliado (incluir activo)
       await pool.query(
         `UPDATE afiliados 
          SET area = $1, cargo = $2, tipocontratacion = $3, 
              legajo = $4, categoria = $5, fechaafiliacion = $6, 
-             fechamunicipio = $7, lugartrabajo = $8
-         WHERE idafiliado = $9`,
+             fechamunicipio = $7, lugartrabajo = $8, activo = $9
+         WHERE idafiliado = $10`,
         [
           afiliado.area,
           afiliado.cargo,
@@ -169,6 +169,7 @@ export async function PUT(
           afiliado.fechaafiliacion,
           afiliado.fechamunicipio || null,
           afiliado.lugartrabajo || null,
+          afiliado.activo ?? true,
           id
         ]
       );

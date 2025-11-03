@@ -5,6 +5,8 @@ import type { FC } from 'react';
 import ComercioList from "./ComercioList";
 import ComercioForm from "./ComercioForm";
 import Modal from "../afiliado/Modal";
+import CambiarContrasenaModal from "@/components/CambiarContrasenaModal";
+import CambiarContrasenaAdminModal from "@/components/CambiarContrasenaAdminModal";
 
 export default function ComerciosPage() {
   const [comercios, setComercios] = useState<any[]>([]);
@@ -12,6 +14,8 @@ export default function ComerciosPage() {
   const [editComercio, setEditComercio] = useState<any>(null);
   const [viewComercio, setViewComercio] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [mostrarCambiarContrasena, setMostrarCambiarContrasena] = useState(false);
+  const [comercioParaCambiarPassword, setComercioParaCambiarPassword] = useState<any>(null);
 
   // Cargar comercios
   const fetchComercios = async () => {
@@ -85,72 +89,84 @@ export default function ComerciosPage() {
     return new Date(dateString).toLocaleDateString("es-ES");
   };
 
+  // Función para abrir el modal de cambio de contraseña para un comercio específico
+  const handleChangePassword = async (comercio: any) => {
+    // Obtener el usuario del comercio
+    const idcomercio = comercio.idcomercio;
+    
+    try {
+      const res = await fetch(`/api/comercios/${idcomercio}`);
+      const data = await res.json();
+      
+      if (data.usuario) {
+        setComercioParaCambiarPassword({
+          id: data.usuario.id,
+          username: data.usuario.username,
+          nombre: data.nombrecomercio,
+          apellido: '', // Los comercios no tienen apellido
+          tipo: 'comercio' as const
+        });
+        setMostrarCambiarContrasena(true);
+      } else {
+        alert('Este comercio no tiene un usuario asignado en el sistema');
+      }
+    } catch (error) {
+      console.error('Error obteniendo datos del comercio:', error);
+      alert('Error al obtener los datos del comercio');
+    }
+  };
+
   // Conteo de comercios activos
   const comerciosActivos = comercios.filter(c => c.activo ?? true).length;
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 flex items-center justify-center">
-        <div className="bg-white rounded-xl shadow-lg border border-slate-200 p-8">
-          <div className="flex items-center gap-4">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600"></div>
-            <span className="text-slate-700 font-medium">Cargando comercios...</span>
-          </div>
-        </div>
+      <div className="flex justify-center items-center h-64">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600"></div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
-      <div className="w-auto mx-auto px-4 py-8">
-        {/* Header Section */}
-        <div className="bg-white rounded-xl shadow-lg border border-slate-200 p-8 mb-8">
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-            <div className="space-y-2">
-              <h1 className="text-4xl font-bold bg-gradient-to-r from-green-600 to-green-800 bg-clip-text text-transparent">
-                Gestión de Comercios
-              </h1>
-              <p className="text-slate-600 text-lg">
-                Administra y gestiona todos los comercios adheridos
-              </p>
-              <div className="flex items-center gap-4 text-sm text-slate-500">
-                <span className="flex items-center gap-1">
-                  <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                  Total: {comercios.length} comercios
-                </span>
-                <span className="flex items-center gap-1">
-                  <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                  Activos: {comerciosActivos}
-                </span>
-                <span className="flex items-center gap-1">
-                  <div className="w-2 h-2 bg-red-500 rounded-full"></div>
-                  Inactivos: {comercios.length - comerciosActivos}
-                </span>
-              </div>
-            </div>
-            <button
-              className="flex items-center gap-2 bg-gradient-to-r from-green-600 to-green-700 text-white px-6 py-3 rounded-lg shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-105 font-semibold"
-              onClick={handleAdd}
-            >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-              </svg>
-              Agregar Comercio
-            </button>
+    <div className="space-y-6">
+      {/* Header Section - Más compacto */}
+      <div className="flex justify-between items-center">
+        <div>
+          <h2 className="text-2xl font-bold text-gray-800">Gestión de Comercios</h2>
+          <div className="flex items-center gap-4 text-sm text-slate-500 mt-1">
+            <span className="flex items-center gap-1">
+              <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+              Total: {comercios.length}
+            </span>
+            <span className="flex items-center gap-1">
+              <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+              Activos: {comerciosActivos}
+            </span>
+            <span className="flex items-center gap-1">
+              <div className="w-2 h-2 bg-red-500 rounded-full"></div>
+              Inactivos: {comercios.length - comerciosActivos}
+            </span>
           </div>
         </div>
-
-        {/* Lista de Comercios */}
-        <div className="bg-white rounded-xl shadow-lg border border-slate-200 overflow-hidden">
-          <ComercioList
-            comercios={comercios}
-            onEdit={handleEdit}
-            onDelete={handleDelete}
-            onView={handleView}
-          />
-        </div>
+        <button
+          className="flex items-center gap-2 bg-green-600 text-white px-4 py-2 rounded-lg shadow hover:bg-green-700 transition font-semibold"
+          onClick={handleAdd}
+        >
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+          </svg>
+          Agregar Comercio
+        </button>
       </div>
+
+      {/* Lista de Comercios */}
+      <ComercioList
+        comercios={comercios}
+        onEdit={handleEdit}
+        onDelete={handleDelete}
+        onView={handleView}
+        onChangePassword={handleChangePassword}
+      />
 
       {/* Modal para agregar/editar */}
       {showModal && !viewComercio && (
@@ -304,7 +320,7 @@ export default function ComerciosPage() {
                 ) : (
                   <div className="text-center py-8">
                     <div className="w-16 h-16 bg-slate-200 rounded-full mx-auto mb-4 flex items-center justify-center">
-                      <svg className="w-8 h-8 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <svg className="w-8 h-8 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
                       </svg>
                     </div>
@@ -340,6 +356,15 @@ export default function ComerciosPage() {
           </div>
         </Modal>
       )}
+
+      <CambiarContrasenaAdminModal
+        isOpen={mostrarCambiarContrasena}
+        onClose={() => {
+          setMostrarCambiarContrasena(false);
+          setComercioParaCambiarPassword(null);
+        }}
+        usuario={comercioParaCambiarPassword}
+      />
     </div>
   );
 }
