@@ -1,0 +1,134 @@
+═══════════════════════════════════════════════════════════════
+   ✅ CHECKLIST DE DESPLIEGUE - SISTEMA SOYEM
+═══════════════════════════════════════════════════════════════
+
+📋 PREPARACIÓN LOCAL
+══════════════════════════════════════════════════════════════
+[ ] 1. Instalar Git (si no lo tienes): https://git-scm.com/download/win
+[ ] 2. Tener PostgreSQL con pg_dump en PATH
+[ ] 3. Verificar que la app funcione localmente (npm run dev)
+[ ] 4. Exportar base de datos local: .\scripts\exportar_db.ps1
+
+🐙 GITHUB (5 minutos)
+══════════════════════════════════════════════════════════════
+[ ] 1. Crear cuenta en GitHub.com (si no tienes)
+[ ] 2. Crear nuevo repositorio (nombre: soyem-sistema)
+[ ] 3. NO agregar README ni .gitignore
+[ ] 4. Copiar la URL del repositorio
+[ ] 5. Ejecutar comandos de GIT_COMANDOS.txt
+[ ] 6. Verificar que los archivos aparezcan en GitHub
+
+🗄️ BASE DE DATOS - NEON (10 minutos)
+══════════════════════════════════════════════════════════════
+[ ] 1. Ir a https://neon.tech
+[ ] 2. Registrarse (gratis, con GitHub o email)
+[ ] 3. Click "Create a project"
+      - Nombre: soyem-db
+      - Región: US East (Ohio) o la más cercana
+      - PostgreSQL 16
+[ ] 4. Copiar el Connection String completo
+      Ejemplo: postgresql://user:pass@ep-xxx.region.aws.neon.tech/neondb?sslmode=require
+[ ] 5. GUARDAR en lugar seguro (lo necesitarás para Vercel)
+[ ] 6. Importar tu base de datos:
+      .\scripts\importar_db.ps1 -ConnectionString "TU_STRING" -BackupFile "backup.sql"
+[ ] 7. Verificar que las tablas se crearon (usar Neon Console o pgAdmin)
+
+🚀 VERCEL (10 minutos)
+══════════════════════════════════════════════════════════════
+[ ] 1. Ir a https://vercel.com
+[ ] 2. Sign up con GitHub (usar la misma cuenta)
+[ ] 3. Click "Add New..." → "Project"
+[ ] 4. Buscar tu repositorio "soyem-sistema"
+[ ] 5. Click "Import"
+[ ] 6. Configuración (dejar por defecto):
+      - Framework Preset: Next.js ✓
+      - Root Directory: ./
+      - Build Command: next build
+      - Output Directory: .next
+
+[ ] 7. IMPORTANTE: Agregar Environment Variables
+
+      Variable 1:
+      Name: DATABASE_URL
+      Value: [PEGAR TU CONNECTION STRING DE NEON]
+      Environments: ✓ Production ✓ Preview ✓ Development
+
+      Variable 2:
+      Name: JWT_SECRET
+      Value: [Generar con comando de PowerShell o usar generador online]
+      Environments: ✓ Production ✓ Preview ✓ Development
+
+      Variable 3:
+      Name: NODE_ENV
+      Value: production
+      Environments: ✓ Production
+
+[ ] 8. Click "Deploy"
+[ ] 9. Esperar 2-5 minutos (ver progreso en pantalla)
+[ ] 10. ¡Obtener tu URL! (algo como: https://soyem-sistema.vercel.app)
+
+✅ VERIFICACIÓN (5 minutos)
+══════════════════════════════════════════════════════════════
+[ ] 1. Abrir la URL de Vercel en el navegador
+[ ] 2. Verificar que carga la página de login
+[ ] 3. Intentar login con usuario de prueba
+[ ] 4. Navegar a:
+      [ ] Admin → Afiliados (debe cargar la lista)
+      [ ] Admin → Comercios (debe cargar la lista)
+      [ ] Admin → Movimientos (debe cargar la lista)
+      [ ] Generar un PDF de prueba
+      [ ] Generar un QR de prueba
+[ ] 5. Revisar console de navegador (F12) - no debe haber errores críticos
+[ ] 6. Si hay errores:
+      - Ir a Vercel → Deployments → [último deployment] → Functions
+      - Revisar logs de errores
+
+🔧 POST-DESPLIEGUE (Opcional)
+══════════════════════════════════════════════════════════════
+[ ] Configurar dominio personalizado en Vercel
+[ ] Compartir URL con usuarios/clientes
+[ ] Configurar backups automáticos (Neon lo hace por defecto)
+[ ] Monitorear métricas en Vercel Dashboard
+[ ] Configurar alertas de errores (Vercel puede enviar emails)
+
+📞 SOPORTE
+══════════════════════════════════════════════════════════════
+Si algo falla:
+
+1. Error en DATABASE_URL:
+   ✓ Verificar que copiaste el string completo de Neon
+   ✓ Incluir ?sslmode=require al final
+   ✓ Redeploy después de agregar variables
+
+2. Error 500:
+   ✓ Ver logs en Vercel → Functions
+   ✓ Verificar que todas las tablas existen en Neon
+   ✓ Revisar que JWT_SECRET esté configurado
+
+3. Base de datos vacía:
+   ✓ Reconectar a Neon y ejecutar importación de nuevo
+   ✓ Verificar credenciales de conexión
+
+4. No carga la página:
+   ✓ Verificar que el build completó sin errores
+   ✓ Revisar Network tab en DevTools (F12)
+
+═══════════════════════════════════════════════════════════════
+RECURSOS ÚTILES:
+═══════════════════════════════════════════════════════════════
+• Generar JWT_SECRET:
+  https://generate-secret.vercel.app/32
+
+• Docs Neon:
+  https://neon.tech/docs/introduction
+
+• Docs Vercel:
+  https://vercel.com/docs
+
+• Verificar deployment:
+  https://vercel.com/[tu-usuario]/[tu-proyecto]
+
+═══════════════════════════════════════════════════════════════
+¡ÉXITO! 🎉
+Tu aplicación SOYEM está en producción y lista para usar.
+═══════════════════════════════════════════════════════════════

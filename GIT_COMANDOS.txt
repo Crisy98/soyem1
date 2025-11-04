@@ -1,0 +1,55 @@
+# ========================================
+# COMANDOS GIT - Copiar y pegar
+# ========================================
+
+# PASO 1: Inicializar Git (si no lo hiciste antes)
+git init
+
+# PASO 2: Verificar qué archivos se van a subir
+git status
+
+# PASO 3: Agregar todos los archivos
+git add .
+
+# PASO 4: Hacer commit con mensaje descriptivo
+git commit -m "Sistema SOYEM - Gestión de afiliados y comercios"
+
+# ========================================
+# AHORA CREA TU REPOSITORIO EN GITHUB:
+# 1. Ve a https://github.com/new
+# 2. Nombre: soyem-sistema (o el que quieras)
+# 3. NO marques "Add README"
+# 4. Click "Create repository"
+# ========================================
+
+# PASO 5: Conectar con GitHub (REEMPLAZA CON TU URL)
+# Copia la URL que te da GitHub y pégala aquí:
+git remote add origin https://github.com/TU_USUARIO/TU_REPOSITORIO.git
+
+# PASO 6: Cambiar a rama main
+git branch -M main
+
+# PASO 7: Subir todo a GitHub
+git push -u origin main
+
+# ========================================
+# SI YA TENÍAS GIT CONFIGURADO ANTES:
+# ========================================
+
+# Ver el remote actual
+git remote -v
+
+# Si necesitas cambiar el remote:
+git remote remove origin
+git remote add origin https://github.com/TU_USUARIO/TU_NUEVO_REPO.git
+
+# ========================================
+# PARA ACTUALIZACIONES FUTURAS:
+# ========================================
+
+# Después de hacer cambios en tu código:
+git add .
+git commit -m "Descripción de los cambios"
+git push
+
+# Vercel se actualiza automáticamente con cada push
