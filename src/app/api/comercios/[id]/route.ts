@@ -3,10 +3,10 @@ import { NextResponse } from "next/server";
 
 export async function GET(
   req: Request,
-  context: { params: { id: string } }
+  context: any
 ) {
   try {
-    const id = await context.params.id;
+    const { id } = (context?.params || {}) as { id: string };
 
     const result = await pool.query(
       `SELECT 
@@ -54,10 +54,10 @@ export async function GET(
 
 export async function PUT(
   req: Request,
-  context: { params: { id: string } }
+  context: any
 ) {
   try {
-    const id = await context.params.id;
+    const { id } = (context?.params || {}) as { id: string };
     const data = await req.json();
     const {
       nombrecomercio,
@@ -136,10 +136,10 @@ export async function PUT(
 
 export async function DELETE(
   req: Request,
-  context: { params: { id: string } }
+  context: any
 ) {
   try {
-    const id = await context.params.id;
+    const { id } = (context?.params || {}) as { id: string };
 
     // Soft delete - marcar como inactivo
     const result = await pool.query(

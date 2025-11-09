@@ -4,10 +4,10 @@ import { NextResponse } from "next/server";
 
 export async function DELETE(
   req: Request,
-  { params }: { params: { id: string } }
+  context: any
 ) {
   try {
-    const { id } = params;
+    const { id } = (context?.params || {}) as { id: string };
 
     // Actualizamos el estado a inactivo (activo = false)
     const result = await pool.query(
@@ -41,10 +41,10 @@ export async function DELETE(
 
 export async function GET(
   req: Request,
-  { params }: { params: { id: string } }
+  context: any
 ) {
   try {
-    const { id } = await params;
+    const { id } = (context?.params || {}) as { id: string };
 
     // Traer afiliado + persona - AGREGAR activo al SELECT
     const afiliadoRes = await pool.query(
@@ -113,10 +113,10 @@ export async function GET(
 
 export async function PUT(
   req: Request,
-  { params }: { params: { id: string } }
+  context: any
 ) {
   try {
-    const { id } = await params;
+    const { id } = (context?.params || {}) as { id: string };
     const data = await req.json();
     const { persona, afiliado, hijos } = data;
 

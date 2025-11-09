@@ -4,12 +4,13 @@ import { pool } from "@/lib/db";
 // GET - Obtener un rubro específico
 export async function GET(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  context: any
 ) {
   try {
+    const { id } = (context?.params || {}) as { id: string };
     const result = await pool.query(
       "SELECT * FROM rubros WHERE idrubro = $1",
-      [params.id]
+      [id]
     );
 
     if (result.rows.length === 0) {
@@ -32,7 +33,7 @@ export async function GET(
 // PUT - Actualizar rubro
 export async function PUT(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  context: any
 ) {
   try {
     const body = await req.json();
@@ -45,9 +46,10 @@ export async function PUT(
       );
     }
 
+    const { id } = (context?.params || {}) as { id: string };
     const result = await pool.query(
       "UPDATE rubros SET nombrerubro = $1 WHERE idrubro = $2 RETURNING *",
-      [nombrerubro.trim(), params.id]
+      [nombrerubro.trim(), id]
     );
 
     if (result.rows.length === 0) {
@@ -70,13 +72,14 @@ export async function PUT(
 // DELETE - Eliminar rubro
 export async function DELETE(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  context: any
 ) {
   try {
+    const { id } = (context?.params || {}) as { id: string };
     // Verificar si hay comercios usando este rubro
     const comerciosResult = await pool.query(
       "SELECT COUNT(*) as count FROM comercios WHERE idrubro = $1",
-      [params.id]
+      [id]
     );
 
     if (parseInt(comerciosResult.rows[0].count) > 0) {
@@ -88,7 +91,7 @@ export async function DELETE(
 
     const result = await pool.query(
       "DELETE FROM rubros WHERE idrubro = $1 RETURNING *",
-      [params.id]
+      [id]
     );
 
     if (result.rows.length === 0) {

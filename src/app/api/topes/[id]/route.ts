@@ -4,12 +4,13 @@ import { pool } from "@/lib/db";
 // GET - Obtener un tope específico
 export async function GET(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  context: any
 ) {
   try {
+    const { id } = (context?.params || {}) as { id: string };
     const result = await pool.query(
       "SELECT * FROM topes WHERE idtope = $1",
-      [params.id]
+      [id]
     );
 
     if (result.rows.length === 0) {
@@ -32,15 +33,16 @@ export async function GET(
 // PUT - Actualizar tope
 export async function PUT(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  context: any
 ) {
   try {
     const body = await req.json();
     const { fecha, importe } = body;
 
+    const { id } = (context?.params || {}) as { id: string };
     const result = await pool.query(
       "UPDATE topes SET fecha = $1, importe = $2 WHERE idtope = $3 RETURNING *",
-      [fecha, importe, params.id]
+      [fecha, importe, id]
     );
 
     if (result.rows.length === 0) {
@@ -63,12 +65,13 @@ export async function PUT(
 // DELETE - Eliminar tope
 export async function DELETE(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  context: any
 ) {
   try {
+    const { id } = (context?.params || {}) as { id: string };
     const result = await pool.query(
       "DELETE FROM topes WHERE idtope = $1 RETURNING *",
-      [params.id]
+      [id]
     );
 
     if (result.rows.length === 0) {
