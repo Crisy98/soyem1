@@ -65,12 +65,21 @@ if (!connectionString || typeof connectionString !== "string") {
 const isProduction = process.env.NODE_ENV === "production";
 let sslConfig = false;
 
-if (isProduction) {
-  // Para Vercel Postgres, Neon, Supabase, etc.
-  sslConfig = {
-    rejectUnauthorized: false, // Acepta certificados self-signed
-  };
-}
+// Detectar si la cadena exige SSL (Neon/Supabase/vercel) aunque no sea production
+try {
+  const requiresSSL =
+    typeof connectionString === "string" && (
+      connectionString.toLowerCase().includes("sslmode=require") ||
+      /\.neon\.tech(?=\/|:|\?|$)/i.test(connectionString) ||
+      connectionString.toLowerCase().includes("ssl=true")
+    );
+  if (isProduction || requiresSSL) {
+    // Para Vercel Postgres, Neon, Supabase, etc.
+    sslConfig = {
+      rejectUnauthorized: false, // Acepta certificados self-signed
+    };
+  }
+} catch {}
 
 export const pool = new Pool({
   connectionString,
