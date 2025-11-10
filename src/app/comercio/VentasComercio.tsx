@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import QRCode from "qrcode";
 
 interface Venta {
@@ -55,12 +55,20 @@ export default function VentasComercio() {
         month: "long",
       })} ${fecha.getFullYear()}`;
 
+      const importe = Number((venta as unknown as { importe: unknown }).importe ?? 0);
+      const cuotaCantidad = Number((venta as unknown as { cuotas: unknown }).cuotas ?? 0);
+      const ventaNormalizada: Venta = {
+        ...venta,
+        importe,
+        cuotas: cuotaCantidad,
+      };
+
       if (!agrupadas[mesAno]) {
         agrupadas[mesAno] = { ventas: [], total: 0 };
       }
 
-      agrupadas[mesAno].ventas.push(venta);
-      agrupadas[mesAno].total += venta.importe;
+      agrupadas[mesAno].ventas.push(ventaNormalizada);
+      agrupadas[mesAno].total += importe;
     });
 
     setVentasPorMes(agrupadas);
@@ -128,7 +136,7 @@ export default function VentasComercio() {
         >
           <div
             className="bg-white rounded-2xl p-6 max-w-sm w-full"
-            onClick={(e) => e.stopPropagation()}
+            onClick={(e: React.MouseEvent<HTMLDivElement>) => e.stopPropagation()}
           >
             <h3 className="text-xl font-bold text-center mb-4">
               Tu Código QR

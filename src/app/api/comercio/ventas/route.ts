@@ -63,9 +63,21 @@ export async function GET(req: NextRequest) {
       [idcomercio]
     );
 
+    type VentaRow = {
+      importe: number | string | null;
+      cuotas: number | string | null;
+      [key: string]: unknown;
+    };
+
+    const ventas = result.rows.map((row: VentaRow) => ({
+      ...row,
+      importe: Number(row.importe) || 0,
+      cuotas: Number(row.cuotas) || 0,
+    }));
+
     return NextResponse.json({
       idcomercio,
-      ventas: result.rows,
+      ventas,
     });
   } catch (error) {
     console.error("Error obteniendo ventas:", error);

@@ -118,6 +118,19 @@ export default function CuotasComercio({ idComercio, nombreComercio, verPorCobra
   };
 
   const procesarCuotas = (cuotas: Cuota[]) => {
+    const cuotasNormalizadas = cuotas.map((cuota) => {
+      const importeCuota = Number((cuota as unknown as { importecuota: unknown }).importecuota ?? 0);
+      const totalCuotas = Number((cuota as unknown as { total_cuotas: unknown }).total_cuotas ?? cuota.total_cuotas ?? 0);
+      const numeroCuota = Number((cuota as unknown as { numerocuota: unknown }).numerocuota ?? cuota.numerocuota ?? 0);
+
+      return {
+        ...cuota,
+        importecuota: importeCuota,
+        total_cuotas: totalCuotas,
+        numerocuota: numeroCuota,
+      };
+    });
+
     const hoy = new Date();
     const mesActual = hoy.getMonth() + 1;
     const anioActual = hoy.getFullYear();
@@ -125,7 +138,7 @@ export default function CuotasComercio({ idComercio, nombreComercio, verPorCobra
     const cobradas: CuotasPorMes = {};
     const porCobrar: CuotasPorMes = {};
 
-    cuotas.forEach((cuota) => {
+    cuotasNormalizadas.forEach((cuota) => {
       const fechaVenc = new Date(cuota.fechavencimiento);
       const mesVenc = fechaVenc.getMonth() + 1;
       const anioVenc = fechaVenc.getFullYear();
@@ -176,7 +189,7 @@ export default function CuotasComercio({ idComercio, nombreComercio, verPorCobra
   };
 
   const toggleMesExpandido = (key: string) => {
-    setMesesExpandidos(prev => ({
+    setMesesExpandidos((prev: { [key: string]: boolean }) => ({
       ...prev,
       [key]: !prev[key]
     }));

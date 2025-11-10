@@ -39,8 +39,22 @@ export async function GET(request: Request) {
       [idComercio]
     );
 
+    type CuotaRow = {
+      importecuota: number | string | null;
+      total_cuotas: number | string | null;
+      numerocuota: number | string | null;
+      [key: string]: unknown;
+    };
+
+    const cuotas = result.rows.map((row: CuotaRow) => ({
+      ...row,
+      importecuota: Number(row.importecuota) || 0,
+      total_cuotas: Number(row.total_cuotas) || 0,
+      numerocuota: Number(row.numerocuota) || 0,
+    }));
+
     return NextResponse.json({
-      cuotas: result.rows,
+      cuotas,
     });
   } catch (error) {
     console.error("Error obteniendo cuotas del comercio:", error);

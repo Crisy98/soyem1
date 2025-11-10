@@ -62,9 +62,38 @@ export async function GET(req: NextRequest) {
        ORDER BY fecha DESC`
     );
 
+    // Normalizar tipos numéricos para evitar strings en el cliente
+    type CuotaRow = {
+      importecuota: number | string | null;
+      total_cuotas: number | string | null;
+      numerocuota: number | string | null;
+      [key: string]: unknown;
+    };
+
+    type TopeRow = {
+      mes: number | string | null;
+      anio: number | string | null;
+      importe: number | string | null;
+      [key: string]: unknown;
+    };
+
+    const cuotas = resultCuotas.rows.map((row: CuotaRow) => ({
+      ...row,
+      importecuota: Number(row.importecuota) || 0,
+      total_cuotas: Number(row.total_cuotas) || 0,
+      numerocuota: Number(row.numerocuota) || 0,
+    }));
+
+    const topes = resultTopes.rows.map((row: TopeRow) => ({
+      ...row,
+      mes: Number(row.mes) || 0,
+      anio: Number(row.anio) || 0,
+      importe: Number(row.importe) || 0,
+    }));
+
     return NextResponse.json({
-      cuotas: resultCuotas.rows,
-      topes: resultTopes.rows,
+      cuotas,
+      topes,
     });
   } catch (error) {
     console.error("Error obteniendo cuotas:", error);

@@ -7,11 +7,11 @@ interface Cuota {
   idmovimiento: number;
   numerocuota: number;
   fechavencimiento: string;
-  importecuota: number;
+  importecuota: number; // se normaliza a número en procesamiento
   pagada: boolean;
   comercio_nombre: string;
   fechacompra: string;
-  total_cuotas: number;
+  total_cuotas: number; // se normaliza a número en procesamiento
 }
 
 interface Tope {
@@ -62,6 +62,19 @@ export default function CuotasAfiliado({ verFuturas }: CuotasAfiliadoProps) {
   };
 
   const procesarCuotas = (cuotas: Cuota[], topes: Tope[]) => {
+    // Normalizar posibles strings provenientes de Postgres (numeric)
+    const cuotasNormalizadas = cuotas.map((cuota) => {
+      const importeCuota = Number((cuota as unknown as { importecuota: unknown }).importecuota ?? cuota.importecuota ?? 0);
+      const totalCuotas = Number((cuota as unknown as { total_cuotas: unknown }).total_cuotas ?? cuota.total_cuotas ?? 0);
+      const numeroCuota = Number((cuota as unknown as { numerocuota: unknown }).numerocuota ?? cuota.numerocuota ?? 0);
+
+      return {
+        ...cuota,
+        importecuota: importeCuota,
+        total_cuotas: totalCuotas,
+        numerocuota: numeroCuota,
+      };
+    });
     const hoy = new Date();
     const mesActual = hoy.getMonth() + 1;
     const anioActual = hoy.getFullYear();
@@ -70,7 +83,7 @@ export default function CuotasAfiliado({ verFuturas }: CuotasAfiliadoProps) {
     const futuras: Cuota[] = [];
     let totalMesActual = 0;
 
-    cuotas.forEach((cuota) => {
+    cuotasNormalizadas.forEach((cuota) => {
       const fechaVenc = new Date(cuota.fechavencimiento);
       const mesVenc = fechaVenc.getMonth() + 1;
       const anioVenc = fechaVenc.getFullYear();
@@ -104,10 +117,10 @@ export default function CuotasAfiliado({ verFuturas }: CuotasAfiliadoProps) {
     setCuotasFuturas(futuras);
 
     const topeActual = topes.find(
-      (t) => Number(t.mes) === mesActual && Number(t.anio) === anioActual
+      (t) => Number((t as unknown as { mes: unknown }).mes ?? t.mes) === mesActual && Number((t as unknown as { anio: unknown }).anio ?? t.anio) === anioActual
     );
 
-    const tope = topeActual ? Number(topeActual.importe) : 0;
+    const tope = topeActual ? Number((topeActual as unknown as { importe: unknown }).importe ?? topeActual.importe) : 0;
     setTopeMesActual(tope);
     setSaldoDisponible(tope - totalMesActual);
   };
