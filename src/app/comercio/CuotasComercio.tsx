@@ -70,7 +70,7 @@ export default function CuotasComercio({ idComercio, nombreComercio, verPorCobra
 
     const interval = setInterval(async () => {
       try {
-        const res = await fetch(`/api/comercio/verificar-ventas?desde=${timestampUltimoCheck}`);
+        const res = await fetch(`/api/comercio/verificar-ventas?desde=${timestampUltimoCheck}`, { credentials: 'include' });
         const data = await res.json();
 
         if (data.nuevaVenta) {
@@ -104,7 +104,7 @@ export default function CuotasComercio({ idComercio, nombreComercio, verPorCobra
 
   const fetchCuotas = async () => {
     try {
-      const res = await fetch("/api/comercio/cuotas");
+      const res = await fetch("/api/comercio/cuotas", { credentials: 'include' });
       const data = await res.json();
       
       if (res.ok) {
@@ -235,7 +235,7 @@ export default function CuotasComercio({ idComercio, nombreComercio, verPorCobra
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
       </div>
     );
-  }
+    
 
   // Si no hay idComercio, mostrar mensaje
   if (!idComercio) {
@@ -614,4 +614,4 @@ export default function CuotasComercio({ idComercio, nombreComercio, verPorCobra
       )}
     </div>
   );
-}
+}}

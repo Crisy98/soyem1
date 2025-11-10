@@ -48,7 +48,7 @@ export default function CuotasAfiliado({ verFuturas }: CuotasAfiliadoProps) {
 
   const fetchCuotas = async () => {
     try {
-      const res = await fetch("/api/afiliado/cuotas");
+  const res = await fetch("/api/afiliado/cuotas", { credentials: 'include' });
       const data = await res.json();
       
       if (res.ok) {

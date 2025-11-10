@@ -34,7 +34,7 @@ function ConfirmarCompraContent() {
 
   const verificarSaldo = async () => {
     try {
-      const res = await fetch("/api/afiliado/saldo-disponible");
+  const res = await fetch("/api/afiliado/saldo-disponible", { credentials: 'include' });
       const data = await res.json();
       
       if (res.ok) {
@@ -64,6 +64,7 @@ function ConfirmarCompraContent() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(datosCompra),
+        credentials: 'include',
       });
 
       const data = await res.json();

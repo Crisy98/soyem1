@@ -79,12 +79,13 @@ export async function POST(request: Request) {
     const totalGastado = parseFloat(resultGastado.rows[0].total_gastado);
     const saldoDisponible = tope - totalGastado;
 
-    // Verificar si hay saldo suficiente
-    if (monto > saldoDisponible) {
+    // Verificar si hay saldo suficiente SOLO para la cuota del mes a validar
+    const montoPorCuota = monto / cuotas;
+    if (montoPorCuota > saldoDisponible) {
       return NextResponse.json({ 
         error: `Saldo insuficiente. Disponible: $${saldoDisponible.toFixed(2)}`,
         saldoDisponible,
-        montoSolicitado: monto
+        montoSolicitado: montoPorCuota
       }, { status: 400 });
     }
 
@@ -104,9 +105,6 @@ export async function POST(request: Request) {
 
       const idMovimiento = resultMovimiento.rows[0].idmovimiento;
 
-      // Calcular monto por cuota
-      const montoPorCuota = monto / cuotas;
-
       // Determinar mes de inicio según la fecha de compra
       const fechaCompra = new Date();
       const diaCompra = fechaCompra.getDate();
@@ -117,9 +115,11 @@ export async function POST(request: Request) {
       // Insertar cuotas
       for (let i = 1; i <= cuotas; i++) {
         // Calcular fecha de vencimiento
-        const fechaVencimiento = new Date();
-        fechaVencimiento.setMonth(fechaVencimiento.getMonth() + mesesADesfasar + (i - 1));
-        fechaVencimiento.setDate(1); // Primer día del mes
+        const base = new Date();
+        const vencYear = base.getUTCFullYear();
+        const vencMonthIndex = base.getUTCMonth() + mesesADesfasar + (i - 1);
+        // Fecha al mediodía UTC del primer día del mes objetivo para evitar retrocesos por huso horario
+        const fechaVencimiento = new Date(Date.UTC(vencYear, vencMonthIndex, 1, 12, 0, 0));
 
         await client.query(
           `INSERT INTO movimiento_cuotas (idmovimiento, numerocuota, fechavencimiento, importecuota) 

@@ -32,7 +32,7 @@ export default function VentasComercio() {
 
   const fetchVentas = async () => {
     try {
-      const res = await fetch("/api/comercio/ventas");
+  const res = await fetch("/api/comercio/ventas", { credentials: 'include' });
       const data = await res.json();
       
       if (res.ok) {
