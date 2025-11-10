@@ -25,6 +25,8 @@ export default function VentasComercio() {
   const [showQR, setShowQR] = useState(false);
   const [qrImage, setQrImage] = useState("");
   const [comercioId, setComercioId] = useState<number | null>(null);
+  const [error, setError] = useState<string>("");
+  const [cargandoIdFallback, setCargandoIdFallback] = useState(false);
 
   useEffect(() => {
     fetchVentas();
@@ -32,19 +34,45 @@ export default function VentasComercio() {
 
   const fetchVentas = async () => {
     try {
-  const res = await fetch("/api/comercio/ventas", { credentials: 'include' });
+      const res = await fetch("/api/comercio/ventas", { credentials: 'include' });
       const data = await res.json();
       
       if (res.ok) {
         setComercioId(data.idcomercio);
         agruparPorMes(data.ventas);
+      } else {
+        setError(data.error || "No se pudieron cargar las ventas");
+        // Intentar fallback de id del comercio si faltó
+        if (!data.idcomercio) {
+          fetchComercioIdFallback();
+        }
       }
     } catch (error) {
       console.error("Error cargando ventas:", error);
+      setError("Error de conexión al cargar ventas");
+      fetchComercioIdFallback();
     } finally {
       setLoading(false);
     }
   };
+
+  const fetchComercioIdFallback = async () => {
+    try {
+      setCargandoIdFallback(true);
+      const res = await fetch('/api/comercio/datos', { credentials: 'include' });
+      const data = await res.json();
+      if (res.ok) {
+        setComercioId(data.idComercio);
+        if (!error) setError('');
+      } else {
+        setError(prev => prev || data.message || 'No se pudo obtener ID de comercio');
+      }
+    } catch (e) {
+      setError(prev => prev || 'Error obteniendo datos del comercio');
+    } finally {
+      setCargandoIdFallback(false);
+    }
+  }
 
   const agruparPorMes = (ventas: Venta[]) => {
     const agrupadas: VentasPorMes = {};
@@ -75,7 +103,10 @@ export default function VentasComercio() {
   };
 
   const generarQR = async () => {
-    if (!comercioId) return;
+    if (!comercioId) {
+      setError('ID de comercio no disponible para generar QR');
+      return;
+    }
 
     try {
       // Genera QR con el ID del comercio
@@ -103,13 +134,32 @@ export default function VentasComercio() {
     );
   }
 
+  if (error && Object.keys(ventasPorMes).length === 0) {
+    return (
+      <div className="bg-white rounded-xl shadow-md p-8 text-center space-y-4">
+        <p className="text-red-600 font-semibold">{error}</p>
+        {cargandoIdFallback && (
+          <div className="flex items-center justify-center gap-2 text-sm text-gray-500">
+            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
+            Reintentando obtener datos del comercio...
+          </div>
+        )}
+        <button
+          onClick={() => { setLoading(true); setError(''); fetchVentas(); }}
+          className="bg-blue-600 hover:bg-blue-700 text-white font-bold px-5 py-2 rounded-lg"
+        >Reintentar</button>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       {/* Botón Generar QR - Destacado en móvil */}
       <div className="bg-white rounded-xl shadow-md p-4 sm:p-6">
         <button
           onClick={generarQR}
-          className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold py-4 px-6 rounded-lg shadow-lg transform transition hover:scale-105 flex items-center justify-center space-x-2"
+          disabled={!comercioId}
+          className={`w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold py-4 px-6 rounded-lg shadow-lg transform transition flex items-center justify-center space-x-2 ${!comercioId ? 'opacity-50 cursor-not-allowed' : 'hover:scale-105'}`}
         >
           <svg
             className="w-6 h-6"
@@ -124,8 +174,11 @@ export default function VentasComercio() {
               d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"
             />
           </svg>
-          <span>Generar Código QR</span>
+          <span>{comercioId ? 'Generar Código QR' : 'Cargando comercio...'}</span>
         </button>
+        {!comercioId && !cargandoIdFallback && (
+          <p className="text-xs text-gray-500 mt-2">Esperando ID de comercio para habilitar QR...</p>
+        )}
       </div>
 
       {/* Modal QR */}
