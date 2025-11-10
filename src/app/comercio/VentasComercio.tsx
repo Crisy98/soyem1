@@ -79,9 +79,24 @@ export default function VentasComercio() {
 
     ventas.forEach((venta) => {
       const fecha = new Date(venta.fechacompra);
-      const mesAno = `${fecha.toLocaleString("es-AR", {
-        month: "long",
-      })} ${fecha.getFullYear()}`;
+      // Usar componentes UTC para evitar desfasajes de zona horaria (ej: ventas al inicio de mes que se muestran como mes anterior)
+      const mesUTC = fecha.getUTCMonth();
+      const anioUTC = fecha.getUTCFullYear();
+      const meses = [
+        "enero",
+        "febrero",
+        "marzo",
+        "abril",
+        "mayo",
+        "junio",
+        "julio",
+        "agosto",
+        "septiembre",
+        "octubre",
+        "noviembre",
+        "diciembre",
+      ];
+      const mesAno = `${meses[mesUTC]} ${anioUTC}`;
 
       const importe = Number((venta as unknown as { importe: unknown }).importe ?? 0);
       const cuotaCantidad = Number((venta as unknown as { cuotas: unknown }).cuotas ?? 0);

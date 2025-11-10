@@ -52,8 +52,9 @@ function ConfirmarCompraContent() {
   const confirmarCompra = async () => {
     if (!datosCompra) return;
 
-    // Validar saldo suficiente
-    if (saldoDisponible !== null && datosCompra.monto > saldoDisponible) {
+    // Validar saldo suficiente por CUOTA (no por total)
+    const montoPorCuotaNumber = Number((datosCompra.monto / datosCompra.cuotas).toFixed(2));
+    if (saldoDisponible !== null && montoPorCuotaNumber > saldoDisponible) {
       setError(`Saldo insuficiente. Disponible: $${saldoDisponible.toFixed(2)}`);
       return;
     }
@@ -113,7 +114,8 @@ function ConfirmarCompraContent() {
   }
 
   const montoPorCuota = (datosCompra.monto / datosCompra.cuotas).toFixed(2);
-  const saldoSuficiente = saldoDisponible !== null && datosCompra.monto <= saldoDisponible;
+  const montoPorCuotaNumber = Number(montoPorCuota);
+  const saldoSuficiente = saldoDisponible !== null && montoPorCuotaNumber <= saldoDisponible;
 
   // Modal de éxito
   if (mostrarExito) {
@@ -182,7 +184,9 @@ function ConfirmarCompraContent() {
             <div className="space-y-1">
               {Array.from({ length: Math.min(datosCompra.cuotas, 3) }, (_, i) => {
                 const fecha = new Date();
-                fecha.setMonth(fecha.getMonth() + i + 1);
+                const diaActual = fecha.getDate();
+                const mesesADesfasar = diaActual >= 20 ? 1 : 0;
+                fecha.setMonth(fecha.getMonth() + mesesADesfasar + i);
                 return (
                   <div key={i} className="text-xs text-gray-700">
                     • Cuota {i + 1}: {fecha.toLocaleDateString("es-AR", { month: "long", year: "numeric" })} - ${montoPorCuota}
@@ -227,7 +231,7 @@ function ConfirmarCompraContent() {
                     ⚠️ Saldo insuficiente para esta compra
                   </p>
                   <p className="text-xs text-red-600 mt-1">
-                    Te faltan: ${(datosCompra.monto - saldoDisponible).toFixed(2)}
+                    Te faltan: ${(montoPorCuotaNumber - (saldoDisponible ?? 0)).toFixed(2)}
                   </p>
                 </div>
               )}

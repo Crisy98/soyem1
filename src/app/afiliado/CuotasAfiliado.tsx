@@ -85,8 +85,9 @@ export default function CuotasAfiliado({ verFuturas }: CuotasAfiliadoProps) {
 
     cuotasNormalizadas.forEach((cuota) => {
       const fechaVenc = new Date(cuota.fechavencimiento);
-      const mesVenc = fechaVenc.getMonth() + 1;
-      const anioVenc = fechaVenc.getFullYear();
+      // Usar UTC para evitar que 00:00:00Z caiga en el día anterior por huso horario
+      const mesVenc = fechaVenc.getUTCMonth() + 1;
+      const anioVenc = fechaVenc.getUTCFullYear();
 
       if (anioVenc < anioActual || (anioVenc === anioActual && mesVenc <= mesActual)) {
         // Cuota pasada o del mes actual - agrupar por mes de VENCIMIENTO
