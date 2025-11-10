@@ -59,13 +59,6 @@ export default function CuotasComercio({ idComercio, nombreComercio, verPorCobra
     }
   }, [idComercio]);
 
-  // Mostrar modal QR cuando el padre activa mostrarGenerarQR
-  useEffect(() => {
-    if (mostrarGenerarQR) {
-      setMostrarFormulario(true);
-    }
-  }, [mostrarGenerarQR]);
-
   // Sincronizar con la prop externa
   useEffect(() => {
     setMostrarFormulario(mostrarGenerarQR);
@@ -242,7 +235,7 @@ export default function CuotasComercio({ idComercio, nombreComercio, verPorCobra
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
       </div>
     );
-    
+  }
 
   // Si no hay idComercio, mostrar mensaje
   if (!idComercio) {
@@ -621,4 +614,4 @@ export default function CuotasComercio({ idComercio, nombreComercio, verPorCobra
       )}
     </div>
   );
-}}
+}
