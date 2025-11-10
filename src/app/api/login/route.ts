@@ -60,15 +60,28 @@ export async function POST(req: Request) {
       { expiresIn: "8h" }
     );
 
-    return new Response(JSON.stringify({ 
-      message: "Login exitoso",
-      roles: user.roles 
-    }), {
-      status: 200,
-      headers: {
-        "Set-Cookie": `token=${token}; HttpOnly; Path=/; Max-Age=28800; Secure; SameSite=Strict`,
-      },
-    });
+    const isProd = process.env.NODE_ENV === 'production';
+    const cookieParts = [
+      `token=${token}`,
+      'HttpOnly',
+      'Path=/',
+      'Max-Age=28800', // 8h
+      'SameSite=Strict'
+    ];
+    if (isProd) cookieParts.push('Secure');
+
+    return new Response(
+      JSON.stringify({ 
+        message: "Login exitoso",
+        roles: user.roles 
+      }),
+      {
+        status: 200,
+        headers: {
+          "Set-Cookie": cookieParts.join('; '),
+        },
+      }
+    );
   } catch (error) {
     console.error(error);
     return new Response(JSON.stringify({ error: "Error en login" }), { status: 500 });

@@ -20,7 +20,7 @@ export default function ComercioPage() {
 
   const fetchDatosComercio = async () => {
     try {
-      const res = await fetch("/api/comercio/datos");
+      const res = await fetch("/api/comercio/datos", { credentials: 'include' });
       const data = await res.json();
       
       if (res.ok) {
@@ -28,7 +28,7 @@ export default function ComercioPage() {
         setNombreComercio(data.nombreComercio);
         setLoading(false);
       } else {
-        console.error("Error obteniendo datos del comercio:", data.error);
+  console.error("Error obteniendo datos del comercio:", data.error);
         
         // Si no es un comercio, redirigir
         if (data.error === "acceso_denegado" || data.error === "no_comercio") {
