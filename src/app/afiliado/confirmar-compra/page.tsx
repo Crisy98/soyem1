@@ -12,6 +12,7 @@ function ConfirmarCompraContent() {
   const [mostrarExito, setMostrarExito] = useState(false);
   const [saldoDisponible, setSaldoDisponible] = useState<number | null>(null);
   const [cargandoSaldo, setCargandoSaldo] = useState(true);
+  const [infoMesValidacion, setInfoMesValidacion] = useState<any>(null);
 
   useEffect(() => {
     const data = searchParams.get("data");
@@ -34,11 +35,19 @@ function ConfirmarCompraContent() {
 
   const verificarSaldo = async () => {
     try {
-  const res = await fetch("/api/afiliado/saldo-disponible", { credentials: 'include' });
+      const res = await fetch("/api/afiliado/saldo-disponible", { credentials: 'include' });
       const data = await res.json();
       
       if (res.ok) {
         setSaldoDisponible(data.saldoDisponible);
+        setInfoMesValidacion({
+          tope: data.tope,
+          totalGastado: data.totalGastado,
+          mes: data.mesValidacion,
+          anio: data.anioValidacion,
+          diaActual: data.diaActual,
+          mensaje: data.mensaje,
+        });
       } else {
         setError(data.error || "No se pudo verificar el saldo disponible");
       }
@@ -116,6 +125,10 @@ function ConfirmarCompraContent() {
   const montoPorCuota = (datosCompra.monto / datosCompra.cuotas).toFixed(2);
   const montoPorCuotaNumber = Number(montoPorCuota);
   const saldoSuficiente = saldoDisponible !== null && montoPorCuotaNumber <= saldoDisponible;
+  const puedeDiferirMes = !saldoSuficiente 
+    && infoMesValidacion 
+    && (infoMesValidacion.diaActual ?? 31) < 20 
+    && montoPorCuotaNumber <= (infoMesValidacion.saldoMesSiguiente || 0);
 
   // Modal de éxito
   if (mostrarExito) {
@@ -185,7 +198,10 @@ function ConfirmarCompraContent() {
               {Array.from({ length: Math.min(datosCompra.cuotas, 3) }, (_, i) => {
                 const fecha = new Date();
                 const diaActual = fecha.getDate();
-                const mesesADesfasar = diaActual >= 20 ? 1 : 0;
+                let mesesADesfasar = diaActual >= 20 ? 1 : 0;
+                if (puedeDiferirMes && mesesADesfasar === 0) {
+                  mesesADesfasar = 1; // forzar inicio siguiente mes si la cuota cabe en el tope pero no en saldo restante
+                }
                 fecha.setMonth(fecha.getMonth() + mesesADesfasar + i);
                 return (
                   <div key={i} className="text-xs text-gray-700">
@@ -220,18 +236,37 @@ function ConfirmarCompraContent() {
                   }`}>
                     ${saldoDisponible.toFixed(2)}
                   </p>
+                  {infoMesValidacion && (
+                    <div className="mt-1 space-y-0.5">
+                      <p className="text-[10px] text-gray-500">
+                        {infoMesValidacion.mensaje}. Tope: ${infoMesValidacion.tope?.toFixed(2)} - Consumido: ${infoMesValidacion.totalGastado?.toFixed(2)}
+                      </p>
+                      {(!saldoSuficiente && (infoMesValidacion.diaActual ?? 31) < 20) && (
+                        <p className="text-[10px] text-gray-500">
+                          Mes siguiente saldo: ${Number(infoMesValidacion.saldoMesSiguiente || 0).toFixed(2)}
+                        </p>
+                      )}
+                    </div>
+                  )}
                 </div>
                 <div className="text-4xl">
                   {saldoSuficiente ? '✓' : '⚠️'}
                 </div>
               </div>
-              {!saldoSuficiente && (
+              {!saldoSuficiente && !puedeDiferirMes && (
                 <div className="mt-3 bg-red-100 rounded p-2">
                   <p className="text-xs text-red-800 font-semibold">
                     ⚠️ Saldo insuficiente para esta compra
                   </p>
                   <p className="text-xs text-red-600 mt-1">
                     Te faltan: ${(montoPorCuotaNumber - (saldoDisponible ?? 0)).toFixed(2)}
+                  </p>
+                </div>
+              )}
+              {!saldoSuficiente && puedeDiferirMes && (
+                <div className="mt-3 bg-yellow-100 rounded p-2">
+                  <p className="text-xs text-yellow-800 font-semibold">
+                    ⚠️ Saldo insuficiente este mes. La primera cuota se programará el mes siguiente.
                   </p>
                 </div>
               )}
@@ -243,16 +278,17 @@ function ConfirmarCompraContent() {
         <div className="p-6 bg-gray-50 space-y-3">
           <button
             onClick={confirmarCompra}
-            disabled={procesando || cargandoSaldo || !saldoSuficiente}
+            disabled={procesando || cargandoSaldo || (!saldoSuficiente && !puedeDiferirMes)}
             className={`w-full font-bold py-4 rounded-lg shadow-lg transition text-lg ${
-              !saldoSuficiente && !cargandoSaldo
+              (!saldoSuficiente && !puedeDiferirMes && !cargandoSaldo)
                 ? 'bg-gray-400 cursor-not-allowed text-white'
                 : 'bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 disabled:from-gray-400 disabled:to-gray-400 text-white'
             }`}
           >
             {procesando ? "Procesando..." : 
              cargandoSaldo ? "Verificando saldo..." :
-             !saldoSuficiente ? "❌ Saldo Insuficiente" :
+             (!saldoSuficiente && !puedeDiferirMes) ? "❌ Saldo Insuficiente" :
+             (!saldoSuficiente && puedeDiferirMes) ? "✓ Confirmar (inicio mes siguiente)" :
              "✓ Confirmar Compra"}
           </button>
           <button

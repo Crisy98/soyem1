@@ -34,43 +34,37 @@ export async function GET(request: Request) {
       anioValidacion = mesActual === 12 ? anioActual + 1 : anioActual;
     }
 
-    // Obtener el tope del mes a validar
-    const resultTope = await pool.query(
-      `SELECT importe 
-       FROM topes 
-       WHERE EXTRACT(MONTH FROM fecha) = $1 
-         AND EXTRACT(YEAR FROM fecha) = $2
-       ORDER BY fecha DESC
-       LIMIT 1`,
-      [mesValidacion, anioValidacion]
-    );
-
-    if (resultTope.rows.length === 0) {
-      return NextResponse.json({ 
-        error: "No hay tope definido para el mes",
-        saldoDisponible: 0,
-        tope: 0
-      }, { status: 400 });
+    async function obtenerSaldoYTope(mes: number, anio: number) {
+      const resTope = await pool.query(
+        `SELECT importe 
+         FROM topes 
+         WHERE EXTRACT(MONTH FROM fecha) = $1 
+           AND EXTRACT(YEAR FROM fecha) = $2
+         ORDER BY fecha DESC
+         LIMIT 1`,
+        [mes, anio]
+      );
+      if (resTope.rows.length === 0) return { tope: 0, totalGastado: 0, saldo: 0 };
+      const topeVal = parseFloat(resTope.rows[0].importe);
+      const primerDia = new Date(anio, mes - 1, 1);
+      const ultimoDia = new Date(anio, mes, 0, 23, 59, 59);
+      const resGastado = await pool.query(
+        `SELECT COALESCE(SUM(mc.importecuota), 0) as total_gastado
+         FROM movimiento_cuotas mc
+         JOIN movimientos m ON mc.idmovimiento = m.idmovimiento
+         WHERE m.idafiliado = $1
+           AND mc.fechavencimiento >= $2
+           AND mc.fechavencimiento <= $3`,
+        [idAfiliado, primerDia, ultimoDia]
+      );
+      const totalGastadoVal = parseFloat(resGastado.rows[0].total_gastado);
+      return { tope: topeVal, totalGastado: totalGastadoVal, saldo: topeVal - totalGastadoVal };
     }
 
-    const tope = parseFloat(resultTope.rows[0].importe);
-
-    // Calcular cuánto ya está comprometido para ese mes
-    const primerDiaMes = new Date(anioValidacion, mesValidacion - 1, 1);
-    const ultimoDiaMes = new Date(anioValidacion, mesValidacion, 0, 23, 59, 59);
-
-    const resultGastado = await pool.query(
-      `SELECT COALESCE(SUM(mc.importecuota), 0) as total_gastado
-       FROM movimiento_cuotas mc
-       JOIN movimientos m ON mc.idmovimiento = m.idmovimiento
-       WHERE m.idafiliado = $1
-         AND mc.fechavencimiento >= $2
-         AND mc.fechavencimiento <= $3`,
-      [idAfiliado, primerDiaMes, ultimoDiaMes]
-    );
-
-    const totalGastado = parseFloat(resultGastado.rows[0].total_gastado);
-    const saldoDisponible = tope - totalGastado;
+    const { tope, totalGastado, saldo: saldoDisponible } = await obtenerSaldoYTope(mesValidacion, anioValidacion);
+    const mesSiguiente = mesValidacion === 12 ? 1 : mesValidacion + 1;
+    const anioSiguiente = mesValidacion === 12 ? anioValidacion + 1 : anioValidacion;
+    const { tope: topeSiguiente, totalGastado: gastadoSiguiente, saldo: saldoMesSiguiente } = await obtenerSaldoYTope(mesSiguiente, anioSiguiente);
 
     return NextResponse.json({
       saldoDisponible: Math.max(0, saldoDisponible),
@@ -81,7 +75,12 @@ export async function GET(request: Request) {
       diaActual,
       mensaje: diaActual >= 20 
         ? `Validando contra el mes siguiente (${mesValidacion}/${anioValidacion})`
-        : `Validando contra el mes actual (${mesValidacion}/${anioValidacion})`
+        : `Validando contra el mes actual (${mesValidacion}/${anioValidacion})`,
+      mesSiguiente,
+      anioSiguiente,
+      topeMesSiguiente: topeSiguiente,
+      totalGastadoMesSiguiente: gastadoSiguiente,
+      saldoMesSiguiente
     });
   } catch (error) {
     console.error("Error obteniendo saldo disponible:", error);
