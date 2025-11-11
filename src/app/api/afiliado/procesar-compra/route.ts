@@ -28,7 +28,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "El código QR ha expirado" }, { status: 400 });
     }
 
-    // Validación de saldo disponible (permitiendo diferir al mes siguiente si no alcanza este mes)
+    // Validación de saldo disponible (sin diferimiento automático)
     const hoy = new Date();
     const diaActual = hoy.getDate();
     const mesActual = hoy.getMonth() + 1;
@@ -36,34 +36,7 @@ export async function POST(request: Request) {
 
     const montoPorCuota = monto / cuotas;
 
-    async function obtenerSaldoDisponibleMes(mes: number, anio: number) {
-      const resTope = await pool.query(
-        `SELECT importe 
-         FROM topes 
-         WHERE EXTRACT(MONTH FROM fecha) = $1 
-           AND EXTRACT(YEAR FROM fecha) = $2
-         ORDER BY fecha DESC
-         LIMIT 1`,
-        [mes, anio]
-      );
-      if (resTope.rows.length === 0) return { tope: 0, saldo: 0 };
-      const topeMes = parseFloat(resTope.rows[0].importe);
-      const primerDiaMesTmp = new Date(anio, mes - 1, 1);
-      const ultimoDiaMesTmp = new Date(anio, mes, 0, 23, 59, 59);
-      const resGastado = await pool.query(
-        `SELECT COALESCE(SUM(mc.importecuota), 0) as total_gastado
-         FROM movimiento_cuotas mc
-         JOIN movimientos m ON mc.idmovimiento = m.idmovimiento
-         WHERE m.idafiliado = $1
-           AND mc.fechavencimiento >= $2
-           AND mc.fechavencimiento <= $3`,
-        [idAfiliado, primerDiaMesTmp, ultimoDiaMesTmp]
-      );
-      const totalGastadoMes = parseFloat(resGastado.rows[0].total_gastado);
-      return { tope: topeMes, saldo: topeMes - totalGastadoMes };
-    }
-
-    // Por regla general: si es día >=20, validar contra el mes siguiente
+    // Mes de validación: si día >=20, es el siguiente mes; si no, el actual
     let mesValidacion = mesActual;
     let anioValidacion = anioActual;
     let mesesADesfasar = 0;
@@ -73,28 +46,45 @@ export async function POST(request: Request) {
       mesesADesfasar = 1;
     }
 
-    // Calcular saldo para el mes de validación inicial
-    const { saldo: saldoMesInicial } = await obtenerSaldoDisponibleMes(mesValidacion, anioValidacion);
+    // Obtener tope y gastado del mes de validación
+    const resultTope = await pool.query(
+      `SELECT importe 
+       FROM topes 
+       WHERE EXTRACT(MONTH FROM fecha) = $1 
+         AND EXTRACT(YEAR FROM fecha) = $2
+       ORDER BY fecha DESC
+       LIMIT 1`,
+      [mesValidacion, anioValidacion]
+    );
 
-    if (montoPorCuota > saldoMesInicial) {
-      // Intentar diferir al mes siguiente sólo si aún no estábamos ya en el mes siguiente
-      const siguienteMes = mesValidacion === 12 ? 1 : mesValidacion + 1;
-      const siguienteAnio = mesValidacion === 12 ? anioValidacion + 1 : anioValidacion;
-      const { saldo: saldoMesSiguiente } = await obtenerSaldoDisponibleMes(siguienteMes, siguienteAnio);
+    if (resultTope.rows.length === 0) {
+      return NextResponse.json({ 
+        error: "No hay tope definido para el mes a validar" 
+      }, { status: 400 });
+    }
 
-      if (montoPorCuota <= saldoMesSiguiente) {
-        // Aceptar diferir: primera cuota el mes siguiente al de validación inicial
-        mesValidacion = siguienteMes;
-        anioValidacion = siguienteAnio;
-        // mesesADesfasar será recalculado en base a mes/año final más abajo
-      } else {
-        return NextResponse.json({ 
-          error: `Saldo insuficiente. Disponible este mes: $${saldoMesInicial.toFixed(2)} y mes siguiente: $${saldoMesSiguiente.toFixed(2)}`,
-          saldoMesInicial,
-          saldoMesSiguiente,
-          montoSolicitado: montoPorCuota
-        }, { status: 400 });
-      }
+    const tope = parseFloat(resultTope.rows[0].importe);
+    const primerDiaMes = new Date(anioValidacion, mesValidacion - 1, 1);
+    const ultimoDiaMes = new Date(anioValidacion, mesValidacion, 0, 23, 59, 59);
+    const resultGastado = await pool.query(
+      `SELECT COALESCE(SUM(mc.importecuota), 0) as total_gastado
+       FROM movimiento_cuotas mc
+       JOIN movimientos m ON mc.idmovimiento = m.idmovimiento
+       WHERE m.idafiliado = $1
+         AND mc.fechavencimiento >= $2
+         AND mc.fechavencimiento <= $3`,
+      [idAfiliado, primerDiaMes, ultimoDiaMes]
+    );
+    const totalGastado = parseFloat(resultGastado.rows[0].total_gastado);
+    const saldoDisponible = tope - totalGastado;
+
+    // Verificar sólo contra la cuota del mes de validación
+    if (montoPorCuota > saldoDisponible) {
+      return NextResponse.json({ 
+        error: `Saldo insuficiente. Disponible: $${saldoDisponible.toFixed(2)}`,
+        saldoDisponible,
+        montoSolicitado: montoPorCuota
+      }, { status: 400 });
     }
 
     // Iniciar transacción
@@ -113,15 +103,8 @@ export async function POST(request: Request) {
 
       const idMovimiento = resultMovimiento.rows[0].idmovimiento;
 
-  // Determinar mes de inicio según la validación final (puede estar diferida)
+  // Determinar mes de inicio según la regla del día 20 (sin diferimiento adicional)
   const fechaCompra = new Date();
-  // Recalcular mesesADesfasar con respecto al mes/año final decidido
-  const base = new Date();
-  const baseYear = base.getUTCFullYear();
-  const baseMonthIndex = base.getUTCMonth();
-  const targetMonthIndex = mesValidacion - 1; // 0-11
-  const monthsDiff = (anioValidacion - baseYear) * 12 + (targetMonthIndex - baseMonthIndex);
-  mesesADesfasar = Math.max(0, monthsDiff);
 
       // Insertar cuotas
       for (let i = 1; i <= cuotas; i++) {
