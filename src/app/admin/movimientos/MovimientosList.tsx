@@ -110,10 +110,11 @@ export default function MovimientosList({
   const formatMonthYear = (dateString: string) => {
     if (!dateString) return "N/A";
     const date = new Date(dateString);
-    return date.toLocaleDateString("es-ES", {
-      month: 'long',
-      year: 'numeric'
-    });
+    // Forzar uso de componentes UTC para evitar que una fecha 00:00:00Z se muestre como mes anterior en zonas -03
+    const meses = ["enero","febrero","marzo","abril","mayo","junio","julio","agosto","septiembre","octubre","noviembre","diciembre"]; 
+    const mesUTC = date.getUTCMonth();
+    const anioUTC = date.getUTCFullYear();
+    return `${meses[mesUTC]} ${anioUTC}`;
   };
 
   const formatCurrency = (amount: number) => {

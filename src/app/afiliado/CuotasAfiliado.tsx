@@ -75,9 +75,10 @@ export default function CuotasAfiliado({ verFuturas }: CuotasAfiliadoProps) {
         numerocuota: numeroCuota,
       };
     });
-    const hoy = new Date();
-    const mesActual = hoy.getMonth() + 1;
-    const anioActual = hoy.getFullYear();
+  const hoy = new Date();
+  // Usar mes/año UTC para ser consistentes con los vencimientos que vienen en UTC
+  const mesActual = hoy.getUTCMonth() + 1;
+  const anioActual = hoy.getUTCFullYear();
     
     const pasadasAgrupadas: CuotasPorMes = {};
     const futuras: Cuota[] = [];
@@ -301,8 +302,9 @@ export default function CuotasAfiliado({ verFuturas }: CuotasAfiliadoProps) {
           ) : (
             cuotasFuturas.map((cuota) => {
               const fechaVenc = new Date(cuota.fechavencimiento);
-              const mesCuota = fechaVenc.getMonth() + 1;
-              const anioCuota = fechaVenc.getFullYear();
+              // Mostrar mes/año usando UTC para evitar desfases de zona horaria
+              const mesCuota = fechaVenc.getUTCMonth() + 1;
+              const anioCuota = fechaVenc.getUTCFullYear();
               
               return (
                 <div
