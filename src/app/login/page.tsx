@@ -47,55 +47,58 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 px-4">
-      <div className="max-w-md w-full bg-white rounded-2xl shadow-xl p-8">
-        {/* Logo/Título */}
+    <div className="min-h-screen flex items-center justify-center bg-gray-100 dark:bg-gray-900 p-4">
+      <div className="w-full max-w-md">
         <div className="text-center mb-8">
           <div className="flex justify-center mb-4">
-            <Image 
-              src="/logo.png" 
-              alt="SOYEM Logo" 
-              width={180} 
-              height={60} 
-              className="h-16 w-auto"
-              priority 
-            />
+            <div className="relative w-24 h-24">
+              <div className="absolute inset-0 bg-gradient-to-r from-blue-400 to-blue-600 rounded-full" />
+              <div className="absolute inset-1 bg-gradient-to-r from-red-400 to-red-600 rounded-full" />
+              <div className="absolute inset-2 bg-gradient-to-r from-green-400 to-green-600 rounded-full" />
+              <div className="absolute inset-3 bg-gradient-to-r from-yellow-400 to-yellow-600 rounded-full flex items-center justify-center">
+                <Image
+                  src="/logo.png"
+                  alt="SOYEM Logo"
+                  width={80}
+                  height={80}
+                  className="rounded-full"
+                  priority
+                />
+              </div>
+            </div>
           </div>
-          <p className="text-gray-600">Bienvenido</p>
+          <h1 className="text-3xl font-bold text-gray-800 dark:text-white">Bienvenido a SOYEM</h1>
+          <p className="text-gray-500 dark:text-gray-400">Inicia sesión para continuar</p>
         </div>
 
-        {/* Formulario */}
-        <form onSubmit={handleLogin} className="space-y-6">
+        <form
+          onSubmit={handleLogin}
+          className="bg-white dark:bg-gray-800 p-8 rounded-2xl shadow-lg space-y-6"
+        >
           {error && (
-            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
+            <div className="bg-red-100 dark:bg-red-500/20 border border-red-400 dark:border-red-500 text-red-700 dark:text-red-400 px-4 py-3 rounded-lg text-sm">
               {error}
             </div>
           )}
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Usuario
-            </label>
+          <div className="relative">
             <input
               type="text"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition text-slate-900 font-medium placeholder:text-slate-500"
-              placeholder="Ingresa tu usuario"
+              className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-700 border-2 border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition text-gray-900 dark:text-white placeholder-gray-400"
+              placeholder="Usuario"
               required
             />
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Contraseña
-            </label>
+          <div className="relative">
             <input
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition text-slate-900 font-medium placeholder:text-slate-500"
-              placeholder="Ingresa tu contraseña"
+              className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-700 border-2 border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none transition text-gray-900 dark:text-white placeholder-gray-400"
+              placeholder="Contraseña"
               required
             />
           </div>
@@ -103,9 +106,19 @@ export default function LoginPage() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 rounded-lg transition duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full bg-gradient-to-r from-blue-500 via-red-500 to-yellow-500 hover:from-blue-600 hover:via-red-600 hover:to-yellow-600 text-white font-bold py-3 rounded-lg transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed shadow-md"
           >
-            {loading ? "Iniciando sesión..." : "Iniciar Sesión"}
+            {loading ? (
+              <div className="flex items-center justify-center">
+                <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                Iniciando sesión...
+              </div>
+            ) : (
+              "Iniciar Sesión"
+            )}
           </button>
         </form>
       </div>
