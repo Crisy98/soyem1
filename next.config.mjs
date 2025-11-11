@@ -1,18 +1,20 @@
-// @ts-nocheck
-import type { NextConfig } from 'next';
-import withPWAInit from 'next-pwa';
+import withPWA from 'next-pwa';
 import runtimeCaching from './runtimeCaching.js';
 
-const withPWA = withPWAInit({
+// Using JS config to bypass type mismatch issues between next-pwa types and Next 15 experimental types.
+
+const isDev = process.env.NODE_ENV === 'development';
+
+const pwaConfig = withPWA({
   dest: 'public',
   register: true,
   skipWaiting: true,
-  disable: process.env.NODE_ENV === 'development',
+  disable: isDev, // disable SW in dev
   runtimeCaching,
-  buildExcludes: [/middleware-manifest\.json$/],
+  buildExcludes: [/middleware-manifest\.json$/]
 });
 
-const nextConfig: NextConfig = {
+const nextConfig = {
   experimental: { ppr: false },
   images: { remotePatterns: [] },
   async headers() {
@@ -25,4 +27,4 @@ const nextConfig: NextConfig = {
   }
 };
 
-export default withPWA(nextConfig);
+export default pwaConfig(nextConfig);
