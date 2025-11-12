@@ -350,7 +350,7 @@ export default function ComercioForm({
   };
 
   return (
-    <div className="w-full max-w-3xl mx-auto max-h-[90vh] overflow-hidden flex flex-col bg-white rounded-xl">
+    <div className="w-full max-w-4xl mx-auto max-h-[90vh] overflow-hidden flex flex-col bg-white rounded-xl">
       {/* Header */}
       <div className="bg-gradient-to-r from-green-600 to-green-700 text-white p-6 rounded-t-xl flex-shrink-0">
         <h1 className="text-2xl font-bold">
