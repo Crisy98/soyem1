@@ -756,7 +756,6 @@ export default function AfiliadoForm({
                   <option value="">Seleccionar tipo</option>
                   <option value="Planta Permanente">Planta Permanente</option>
                   <option value="Contratado">Contratado</option>
-                  <option value="Transitorio">Transitorio</option>
                 </select>
                 {errors.tipocontratacion && (
                   <p className="text-red-500 text-sm mt-1 flex items-center gap-1">
@@ -813,7 +812,7 @@ export default function AfiliadoForm({
                 </label>
                 <input
                   type="date"
-                  className={`w-full border rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-green-400 transition-all ${
+                  className={`w-full border rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-green-400 text-slate-900 transition-all ${
                     errors.fechaafiliacion ? "border-red-500 bg-red-50" : "border-slate-300 focus:border-green-400"
                   }`}
                   value={form.afiliado.fechaafiliacion}
@@ -822,7 +821,7 @@ export default function AfiliadoForm({
                   }
                 />
                 {errors.fechaafiliacion && (
-                  <p className="text-red-500 text-sm mt-1 flex items-center gap-1">
+                  <p className="text-red-500 text-sm mt-1 flex items-center text-slate-900gap-1">
                     <span className="text-red-400">⚠</span> {errors.fechaafiliacion}
                   </p>
                 )}
@@ -834,7 +833,7 @@ export default function AfiliadoForm({
                 </label>
                 <input
                   type="date"
-                  className={`w-full border rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-green-400 transition-all ${
+                  className={`w-full border rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-green-400 text-slate-900 transition-all ${
                     errors.fechamunicipio ? "border-red-500 bg-red-50" : "border-slate-300 focus:border-green-400"
                   }`}
                   value={form.afiliado.fechamunicipio}
@@ -851,7 +850,7 @@ export default function AfiliadoForm({
 
               <div className="md:col-span-2 lg:col-span-3">
                 <label className="block text-sm font-semibold text-slate-700 mb-2">
-                  Lugar de trabajo *
+                  Localidad de Trabajo *
                 </label>
                 <input
                   className={`w-full border rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-green-400 transition-all text-slate-900 font-medium placeholder:text-slate-500 ${
