@@ -297,7 +297,7 @@ export default function AfiliadoList({
       </div>
 
       {/* Tabla */}
-      <div className="bg-white rounded-lg border border-slate-200 overflow-hidden">
+  <div className="bg-white rounded-lg border border-slate-200 overflow-visible">
         {paginatedAfiliados.length === 0 ? (
           <div className="text-center py-12">
             <div className="w-24 h-24 bg-slate-100 rounded-full mx-auto mb-6 flex items-center justify-center">
